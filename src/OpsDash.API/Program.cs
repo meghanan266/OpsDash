@@ -1,11 +1,16 @@
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpsDash.API.Filters;
+using OpsDash.API.Health;
 using OpsDash.API.Middleware;
 using OpsDash.Application;
 using OpsDash.Infrastructure;
+using OpsDash.Infrastructure.Data;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +25,8 @@ builder.Host.UseSerilog(
 builder.Services.AddScoped<FluentValidationActionFilter>();
 builder.Services.AddControllers(options => options.Filters.AddService<FluentValidationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHealthChecks().AddDbContextCheck<AppDbContext>("database");
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo { Title = "OpsDash API", Version = "v1" });
@@ -40,6 +47,13 @@ builder.Services.AddSwaggerGen(options =>
         requirement.Add(new OpenApiSecuritySchemeReference("Bearer", document, null), []);
         return requirement;
     });
+
+    var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+    if (File.Exists(xmlPath))
+    {
+        options.IncludeXmlComments(xmlPath, includeControllerXmlComments: true);
+    }
 });
 
 var corsOrigins =
@@ -92,6 +106,13 @@ app.UseHttpsRedirection();
 app.UseSerilogRequestLogging();
 app.UseCors("DefaultCors");
 
+app.MapHealthChecks(
+    "/health",
+    new HealthCheckOptions { ResponseWriter = HealthCheckResponseWriter.WriteHealthResponse });
+app.MapHealthChecks(
+    "/health/ready",
+    new HealthCheckOptions { ResponseWriter = HealthCheckResponseWriter.WriteHealthResponse });
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -103,18 +124,6 @@ app.UseAuthorization();
 app.UseMiddleware<TenantResolutionMiddleware>();
 
 app.MapControllers();
-
-app.MapGet(
-        "/health",
-        () =>
-            Results.Ok(
-                new
-                {
-                    status = "healthy",
-                    timestamp = DateTime.UtcNow,
-                }))
-    .WithName("Health")
-    .WithTags("Health");
 
 app.Run();
 

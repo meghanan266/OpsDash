@@ -6,8 +6,12 @@ using OpsDash.Application.Interfaces;
 
 namespace OpsDash.API.Controllers;
 
+/// <summary>
+/// Ingest and query operational metrics for the current tenant.
+/// </summary>
 [ApiController]
 [Authorize]
+[Tags("Metrics")]
 [Route("api/v1/metrics")]
 public class MetricsController : ControllerBase
 {
@@ -18,6 +22,9 @@ public class MetricsController : ControllerBase
         _metricService = metricService;
     }
 
+    /// <summary>
+    /// Records a single metric data point.
+    /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(ApiResponse<MetricDto>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<MetricDto>), StatusCodes.Status400BadRequest)]
@@ -32,6 +39,9 @@ public class MetricsController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
+    /// <summary>
+    /// Records up to 1000 metric data points in one request.
+    /// </summary>
     [HttpPost("batch")]
     [ProducesResponseType(typeof(ApiResponse<List<MetricDto>>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<List<MetricDto>>), StatusCodes.Status400BadRequest)]
@@ -46,6 +56,9 @@ public class MetricsController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
+    /// <summary>
+    /// Lists stored metrics with optional category filter and pagination.
+    /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<MetricDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<PagedResult<MetricDto>>>> GetMetrics(
@@ -56,6 +69,9 @@ public class MetricsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Returns per-metric aggregates and trend for dashboard use (via database procedure).
+    /// </summary>
     [HttpGet("summary")]
     [ProducesResponseType(typeof(ApiResponse<List<MetricSummaryDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<MetricSummaryDto>>>> GetSummary(
@@ -66,6 +82,9 @@ public class MetricsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Lists distinct metric categories for the tenant.
+    /// </summary>
     [HttpGet("categories")]
     [ProducesResponseType(typeof(ApiResponse<List<string>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<string>>>> GetCategories()
@@ -74,6 +93,9 @@ public class MetricsController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Returns time series for one metric with optional granularity (raw, hourly, daily).
+    /// </summary>
     [HttpGet("{name}/history")]
     [ProducesResponseType(typeof(ApiResponse<List<MetricHistoryPointDto>>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<List<MetricHistoryPointDto>>>> GetHistory(
@@ -94,4 +116,3 @@ public class MetricsController : ControllerBase
         return Ok(result);
     }
 }
-

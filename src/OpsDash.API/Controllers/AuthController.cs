@@ -5,7 +5,11 @@ using OpsDash.Application.Interfaces;
 
 namespace OpsDash.API.Controllers;
 
+/// <summary>
+/// Registration, authentication, and token lifecycle endpoints.
+/// </summary>
 [ApiController]
+[Tags("Authentication")]
 [Route("api/v1/[controller]")]
 public class AuthController : ControllerBase
 {
@@ -16,6 +20,9 @@ public class AuthController : ControllerBase
         _authService = authService;
     }
 
+    /// <summary>
+    /// Registers a new user and tenant.
+    /// </summary>
     [HttpPost("register")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status400BadRequest)]
@@ -30,6 +37,9 @@ public class AuthController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, result);
     }
 
+    /// <summary>
+    /// Authenticates credentials and returns JWT access and refresh tokens.
+    /// </summary>
     [HttpPost("login")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status400BadRequest)]
@@ -50,6 +60,9 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Exchanges a refresh token for a new access token.
+    /// </summary>
     [HttpPost("refresh")]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<AuthResponse>), StatusCodes.Status400BadRequest)]
@@ -70,6 +83,9 @@ public class AuthController : ControllerBase
         return Ok(result);
     }
 
+    /// <summary>
+    /// Revokes a refresh token so it can no longer be used.
+    /// </summary>
     [HttpPost("revoke")]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ApiResponse<bool>), StatusCodes.Status400BadRequest)]

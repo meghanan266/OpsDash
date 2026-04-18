@@ -1,4 +1,5 @@
 using AutoMapper;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using OpsDash.Application.DTOs.Common;
 using OpsDash.Application.DTOs.Metrics;
@@ -87,59 +88,15 @@ public class MetricService : IMetricService
 
     public async Task<ApiResponse<List<MetricSummaryDto>>> GetMetricsSummaryAsync(DateTime? startDate, DateTime? endDate)
     {
-        IQueryable<Metric> query = _db.Metrics;
+        const string sql = "EXEC [dbo].[sp_GetDashboardSummary] @TenantId, @StartDate, @EndDate";
 
-        if (startDate.HasValue)
-        {
-            query = query.Where(m => m.RecordedAt >= startDate.Value);
-        }
-
-        if (endDate.HasValue)
-        {
-            query = query.Where(m => m.RecordedAt <= endDate.Value);
-        }
-
-        // Pull minimal fields needed for summary calculations.
-        var points = await query
-            .Select(m => new
-            {
-                m.MetricName,
-                m.Category,
-                m.MetricValue,
-                m.RecordedAt,
-            })
+        var summaries = await _db.Database
+            .SqlQueryRaw<MetricSummaryDto>(
+                sql,
+                new SqlParameter("@TenantId", _tenantContext.TenantId),
+                new SqlParameter("@StartDate", startDate.HasValue ? startDate.Value : DBNull.Value),
+                new SqlParameter("@EndDate", endDate.HasValue ? endDate.Value : DBNull.Value))
             .ToListAsync();
-
-        var summaries = points
-            .GroupBy(p => new { p.MetricName, p.Category })
-            .Select(g =>
-            {
-                var ordered = g.OrderBy(p => p.RecordedAt).ToList();
-                var latest = ordered.Count == 0 ? null : ordered[^1];
-
-                var min = g.Min(x => x.MetricValue);
-                var max = g.Max(x => x.MetricValue);
-                var avg = g.Average(x => x.MetricValue);
-                var count = g.Count();
-
-                var trend = ComputeTrendDirection(ordered.Select(x => x.MetricValue).ToList());
-
-                return new MetricSummaryDto
-                {
-                    MetricName = g.Key.MetricName,
-                    Category = g.Key.Category,
-                    LatestValue = latest?.MetricValue ?? 0m,
-                    MinValue = min,
-                    MaxValue = max,
-                    AvgValue = avg,
-                    DataPointCount = count,
-                    LatestRecordedAt = latest?.RecordedAt,
-                    TrendDirection = trend,
-                };
-            })
-            .OrderBy(s => s.Category)
-            .ThenBy(s => s.MetricName)
-            .ToList();
 
         return ApiResponse<List<MetricSummaryDto>>.Ok(summaries);
     }
@@ -235,37 +192,6 @@ public class MetricService : IMetricService
             "recordedat" => desc ? query.OrderByDescending(m => m.RecordedAt) : query.OrderBy(m => m.RecordedAt),
             _ => desc ? query.OrderByDescending(m => m.RecordedAt) : query.OrderBy(m => m.RecordedAt),
         };
-    }
-
-    private static string ComputeTrendDirection(List<decimal> orderedValues)
-    {
-        // Compare avg of last 5 points to avg of previous 5 points.
-        if (orderedValues.Count < 10)
-        {
-            return "Stable";
-        }
-
-        var last5 = orderedValues.TakeLast(5).Average();
-        var prev5 = orderedValues.Skip(orderedValues.Count - 10).Take(5).Average();
-
-        if (prev5 == 0m)
-        {
-            return "Stable";
-        }
-
-        var changeRatio = (last5 - prev5) / Math.Abs(prev5);
-
-        if (changeRatio > 0.02m)
-        {
-            return "Rising";
-        }
-
-        if (changeRatio < -0.02m)
-        {
-            return "Falling";
-        }
-
-        return "Stable";
     }
 }
 

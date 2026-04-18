@@ -1,5 +1,6 @@
 using AutoMapper;
 using OpsDash.Application.DTOs.Users;
+using OpsDash.Application.DTOs.Metrics;
 using OpsDash.Domain.Entities;
 
 namespace OpsDash.Application.Mappings;
@@ -18,6 +19,14 @@ public class UserMappingProfile : Profile
             .ForMember(d => d.CreatedAt, o => o.Ignore())
             .ForMember(d => d.IsActive, o => o.Ignore())
             .ForMember(d => d.Role, o => o.Ignore())
+            .ForMember(d => d.Tenant, o => o.Ignore());
+
+        CreateMap<Metric, MetricDto>();
+
+        CreateMap<IngestMetricRequest, Metric>()
+            .ForMember(d => d.Id, o => o.Ignore())
+            .ForMember(d => d.TenantId, o => o.Ignore())
+            .ForMember(d => d.CreatedAt, o => o.Ignore())
             .ForMember(d => d.Tenant, o => o.Ignore());
     }
 }

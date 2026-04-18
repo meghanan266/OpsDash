@@ -1,3 +1,4 @@
+using OpsDash.Infrastructure;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,7 +29,7 @@ builder.Services.AddCors(options =>
 
 // TODO: Configure JWT authentication (JwtBearer) using JwtSettings from configuration.
 
-// TODO: Register application and infrastructure services for dependency injection.
+builder.Services.AddInfrastructureServices(builder.Configuration);
 
 var app = builder.Build();
 

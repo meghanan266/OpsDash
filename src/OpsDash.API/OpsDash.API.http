@@ -1,0 +1,6 @@
+@OpsDash.API_HostAddress = http://localhost:5095
+
+GET {{OpsDash.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

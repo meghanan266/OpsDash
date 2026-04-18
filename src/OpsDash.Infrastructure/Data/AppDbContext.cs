@@ -4,7 +4,7 @@ using OpsDash.Domain.Entities;
 
 namespace OpsDash.Infrastructure.Data;
 
-public class AppDbContext : DbContext
+public class AppDbContext : DbContext, IAppDbContext
 {
     private readonly ITenantContextService _tenantContextService;
 

@@ -19,6 +19,9 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<CurrentTenantService>();
         services.AddScoped<ITenantContextService>(sp => sp.GetRequiredService<CurrentTenantService>());
 
+        services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
+        services.AddScoped<ITokenService, TokenService>();
+
         return services;
     }
 }

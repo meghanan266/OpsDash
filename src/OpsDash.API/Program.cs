@@ -1,12 +1,10 @@
 using System.Text;
-using FluentValidation;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using OpsDash.API.Filters;
 using OpsDash.API.Middleware;
-using OpsDash.Application.Interfaces;
-using OpsDash.Application.Services;
-using OpsDash.Application.Validators;
+using OpsDash.Application;
 using OpsDash.Infrastructure;
 using Serilog;
 
@@ -19,7 +17,8 @@ builder.Host.UseSerilog(
             .ReadFrom.Services(services)
             .Enrich.FromLogContext());
 
-builder.Services.AddControllers();
+builder.Services.AddScoped<FluentValidationActionFilter>();
+builder.Services.AddControllers(options => options.Filters.AddService<FluentValidationActionFilter>());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -84,8 +83,7 @@ builder.Services.AddAuthorization();
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
-builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
-builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddApplicationServices();
 
 var app = builder.Build();
 

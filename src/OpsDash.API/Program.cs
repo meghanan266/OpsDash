@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -11,6 +12,7 @@ using OpsDash.API.Middleware;
 using OpsDash.Application;
 using OpsDash.Infrastructure;
 using OpsDash.Infrastructure.Data;
+using OpsDash.Infrastructure.Data.SeedData;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -100,6 +102,13 @@ builder.Services.AddInfrastructureServices(builder.Configuration);
 builder.Services.AddApplicationServices();
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await context.Database.MigrateAsync();
+    await DataSeeder.SeedAsync(context);
+}
 
 app.UseMiddleware<GlobalExceptionMiddleware>();
 app.UseHttpsRedirection();

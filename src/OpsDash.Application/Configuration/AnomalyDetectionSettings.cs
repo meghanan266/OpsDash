@@ -11,4 +11,8 @@ public sealed class AnomalyDetectionSettings
     public double CriticalSeverityMin { get; set; } = 2.5;
 
     public double SevereSeverityMin { get; set; } = 3.0;
+
+    public int CorrelationWindowMinutes { get; set; } = 15;
+
+    public double CorrelationZScoreThreshold { get; set; } = 1.5;
 }

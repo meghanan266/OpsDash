@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
 using OpsDash.Application.Configuration;
+using OpsDash.Application.DTOs.Anomalies;
 using OpsDash.Application.Interfaces;
 using OpsDash.Application.Services;
 using OpsDash.Domain.Entities;
@@ -48,9 +49,14 @@ public sealed class AnomalyDetectionServiceTests
         var tenant = new Mock<ITenantContextService>();
         tenant.Setup(t => t.TenantId).Returns(tenantId);
 
+        var correlation = new Mock<ICorrelationService>();
+        correlation.Setup(c => c.FindCorrelationsAsync(It.IsAny<long>()))
+            .ReturnsAsync(new List<CorrelationResult>());
+
         return new AnomalyDetectionService(
             db.Object,
             tenant.Object,
+            correlation.Object,
             NullLogger<AnomalyDetectionService>.Instance,
             Options.Create(settings ?? new AnomalyDetectionSettings()));
     }

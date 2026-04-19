@@ -24,6 +24,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IHealthScoreService, HealthScoreService>();
         services.AddScoped<IAnomalyService, AnomalyService>();
         services.AddScoped<IIncidentService, IncidentService>();
+        services.AddScoped<ICorrelationService, CorrelationService>();
         services.AddScoped<IAnomalyDetectionService, AnomalyDetectionService>();
 
         return services;

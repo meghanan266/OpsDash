@@ -15,17 +15,20 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
 
     private readonly IAppDbContext _db;
     private readonly ITenantContextService _tenantContext;
+    private readonly ICorrelationService _correlationService;
     private readonly ILogger<AnomalyDetectionService> _logger;
     private readonly AnomalyDetectionSettings _settings;
 
     public AnomalyDetectionService(
         IAppDbContext db,
         ITenantContextService tenantContext,
+        ICorrelationService correlationService,
         ILogger<AnomalyDetectionService> logger,
         IOptions<AnomalyDetectionSettings> options)
     {
         _db = db;
         _tenantContext = tenantContext;
+        _correlationService = correlationService;
         _logger = logger;
         _settings = options.Value;
     }
@@ -135,6 +138,8 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
                     zScore,
                     severity);
 
+                var correlations = await _correlationService.FindCorrelationsAsync(score.Id);
+
                 return new AnomalyDetectionResult
                 {
                     IsAnomaly = true,
@@ -146,6 +151,7 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
                     BaselineMean = baselineMean,
                     BaselineStdDev = baselineStdDev,
                     AnomalyScoreId = score.Id,
+                    Correlations = correlations,
                 };
             }
 
@@ -160,6 +166,7 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
                 BaselineMean = baselineMean,
                 BaselineStdDev = baselineStdDev,
                 AnomalyScoreId = null,
+                Correlations = [],
             };
         }
         finally

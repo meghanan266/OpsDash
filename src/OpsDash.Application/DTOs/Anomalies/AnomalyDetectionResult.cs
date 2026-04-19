@@ -19,4 +19,6 @@ public sealed class AnomalyDetectionResult
     public decimal BaselineStdDev { get; set; }
 
     public long? AnomalyScoreId { get; set; }
+
+    public List<CorrelationResult> Correlations { get; set; } = [];
 }

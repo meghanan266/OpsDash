@@ -1,4 +1,4 @@
-@if (auth.isAuthenticated()) {
+@if (auth.isAuthenticated() && !isAuthPage()) {
   <mat-sidenav-container class="shell">
     <mat-sidenav mode="side" opened class="sidenav">
       <mat-nav-list>

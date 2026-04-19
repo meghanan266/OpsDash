@@ -1,0 +1,88 @@
+<div class="login-page">
+  <mat-card class="login-card" appearance="outlined">
+    <mat-card-content>
+      <div class="brand-block">
+        <h1 class="brand-title">OpsDash</h1>
+        <p class="brand-subtitle">Sign in to your organization</p>
+      </div>
+
+      <form class="login-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Subdomain</mat-label>
+          <input matInput formControlName="subdomain" placeholder="your-organization" autocomplete="organization" />
+          <mat-hint align="end">.opsdash.io</mat-hint>
+          @if (form.controls.subdomain.hasError('required') && form.controls.subdomain.touched) {
+            <mat-error>Subdomain is required</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" placeholder="you@company.com" autocomplete="email" />
+          @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+            <mat-error>Email is required</mat-error>
+          }
+          @if (form.controls.email.hasError('email') && form.controls.email.touched && !form.controls.email.hasError('required')) {
+            <mat-error>Enter a valid email address</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="password"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="hidePassword() ? 'Show password' : 'Hide password'"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.password.hasError('required') && form.controls.password.touched) {
+            <mat-error>Password is required</mat-error>
+          }
+          @if (form.controls.password.hasError('minlength') && form.controls.password.touched && !form.controls.password.hasError('required')) {
+            <mat-error>At least 8 characters</mat-error>
+          }
+        </mat-form-field>
+
+        @if (errorMessage(); as err) {
+          <div class="error-banner" role="alert">{{ err }}</div>
+        }
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="submit-btn full-width"
+          [disabled]="loading()"
+        >
+          @if (loading()) {
+            <mat-spinner diameter="22" />
+          } @else {
+            Sign In
+          }
+        </button>
+      </form>
+
+      <p class="demo-hint">
+        Demo:
+        <span class="demo-values">admin{{ '@' }}techflow.com</span>
+        /
+        <span class="demo-values">Demo{{ '@' }}123</span>
+        <span class="demo-sub">(subdomain: techflow)</span>
+      </p>
+
+      <p class="footer-link">
+        Don't have an account?
+        <a routerLink="/register">Register your organization</a>
+      </p>
+    </mat-card-content>
+  </mat-card>
+</div>

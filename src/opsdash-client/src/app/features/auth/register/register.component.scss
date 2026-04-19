@@ -1,0 +1,159 @@
+:host {
+  display: block;
+  min-height: 100vh;
+}
+
+.register-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, color-mix(in srgb, var(--mat-sys-primary) 12%, transparent), transparent 55%),
+    radial-gradient(900px 500px at 100% 0%, color-mix(in srgb, var(--mat-sys-tertiary) 10%, transparent), transparent 50%),
+    linear-gradient(180deg, #f5f7fb 0%, #eef1f6 100%);
+}
+
+.register-card {
+  width: 100%;
+  max-width: 520px;
+  border-radius: 16px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.06),
+    0 12px 40px rgba(15, 23, 42, 0.08);
+}
+
+.brand-block {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.brand-title {
+  margin: 0;
+  font-size: 1.65rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--mat-sys-primary);
+}
+
+.brand-subtitle {
+  margin: 8px 0 0;
+  font-size: 0.95rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+}
+
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.full-width {
+  width: 100%;
+}
+
+.name-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  align-items: start;
+}
+
+.subdomain-preview {
+  margin: -4px 0 12px;
+  font-size: 0.8125rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+
+  .label {
+    font-weight: 500;
+    margin-right: 6px;
+    color: color-mix(in srgb, var(--mat-sys-on-surface) 82%, transparent);
+  }
+}
+
+.strength-hints {
+  list-style: none;
+  margin: 4px 0 12px;
+  padding: 0 4px;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+
+  li {
+    position: relative;
+    padding-left: 1.1rem;
+
+    &::before {
+      content: '○';
+      position: absolute;
+      left: 0;
+      font-size: 0.65rem;
+      top: 0.15rem;
+    }
+
+    &.met {
+      color: #2e7d32;
+      font-weight: 500;
+
+      &::before {
+        content: '●';
+        color: #2e7d32;
+      }
+    }
+  }
+}
+
+.error-banner {
+  margin: 12px 0 8px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  color: var(--mat-sys-on-error-container);
+  background-color: var(--mat-sys-error-container);
+  border: 1px solid color-mix(in srgb, var(--mat-sys-error) 25%, transparent);
+}
+
+.submit-btn {
+  margin-top: 16px;
+  height: 48px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+
+  mat-spinner {
+    display: inline-block;
+    vertical-align: middle;
+  }
+}
+
+.footer-link {
+  margin: 20px 0 0;
+  text-align: center;
+  font-size: 0.875rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+
+  a {
+    font-weight: 500;
+    color: var(--mat-sys-primary);
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+@media (max-width: 600px) {
+  .name-row {
+    grid-template-columns: 1fr;
+  }
+
+  .register-card {
+    max-width: none;
+  }
+
+  .brand-title {
+    font-size: 1.45rem;
+  }
+}

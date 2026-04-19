@@ -1,0 +1,160 @@
+<div class="register-page">
+  <mat-card class="register-card" appearance="outlined">
+    <mat-card-content>
+      <div class="brand-block">
+        <h1 class="brand-title">Create Your Organization</h1>
+        <p class="brand-subtitle">Get started with OpsDash</p>
+      </div>
+
+      <form class="register-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Organization name</mat-label>
+          <input matInput formControlName="tenantName" placeholder="Acme Corporation" autocomplete="organization" />
+          @if (form.controls.tenantName.hasError('required') && form.controls.tenantName.touched) {
+            <mat-error>Organization name is required</mat-error>
+          }
+          @if (form.controls.tenantName.hasError('maxlength') && form.controls.tenantName.touched) {
+            <mat-error>Max 200 characters</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Subdomain</mat-label>
+          <input
+            matInput
+            formControlName="subdomain"
+            placeholder="your-organization"
+            autocomplete="off"
+            (input)="formatSubdomainField()"
+            (blur)="formatSubdomainField()"
+          />
+          <mat-hint align="end">.opsdash.io</mat-hint>
+          @if (form.controls.subdomain.hasError('required') && form.controls.subdomain.touched) {
+            <mat-error>Subdomain is required</mat-error>
+          }
+          @if (form.controls.subdomain.hasError('maxlength') && form.controls.subdomain.touched) {
+            <mat-error>Max 100 characters</mat-error>
+          }
+          @if (form.controls.subdomain.hasError('pattern') && form.controls.subdomain.touched && !form.controls.subdomain.hasError('required')) {
+            <mat-error>Use lowercase letters, numbers, and hyphens only</mat-error>
+          }
+        </mat-form-field>
+
+        <p class="subdomain-preview"><span class="label">Preview:</span> {{ subdomainPreview() }}</p>
+
+        <div class="name-row">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>First name</mat-label>
+            <input matInput formControlName="firstName" autocomplete="given-name" />
+            @if (form.controls.firstName.hasError('required') && form.controls.firstName.touched) {
+              <mat-error>First name is required</mat-error>
+            }
+            @if (form.controls.firstName.hasError('maxlength') && form.controls.firstName.touched) {
+              <mat-error>Max 100 characters</mat-error>
+            }
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Last name</mat-label>
+            <input matInput formControlName="lastName" autocomplete="family-name" />
+            @if (form.controls.lastName.hasError('required') && form.controls.lastName.touched) {
+              <mat-error>Last name is required</mat-error>
+            }
+            @if (form.controls.lastName.hasError('maxlength') && form.controls.lastName.touched) {
+              <mat-error>Max 100 characters</mat-error>
+            }
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <input matInput type="email" formControlName="email" placeholder="you@company.com" autocomplete="email" />
+          @if (form.controls.email.hasError('required') && form.controls.email.touched) {
+            <mat-error>Email is required</mat-error>
+          }
+          @if (form.controls.email.hasError('email') && form.controls.email.touched && !form.controls.email.hasError('required')) {
+            <mat-error>Enter a valid email address</mat-error>
+          }
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <input
+            matInput
+            [type]="hidePassword() ? 'password' : 'text'"
+            formControlName="password"
+            autocomplete="new-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="togglePasswordVisibility()"
+            [attr.aria-label]="hidePassword() ? 'Show password' : 'Hide password'"
+          >
+            <mat-icon>{{ hidePassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.password.hasError('required') && form.controls.password.touched) {
+            <mat-error>Password is required</mat-error>
+          }
+          @if (form.controls.password.hasError('minlength') && form.controls.password.touched && !form.controls.password.hasError('required')) {
+            <mat-error>At least 8 characters</mat-error>
+          }
+        </mat-form-field>
+
+        <ul class="strength-hints" aria-live="polite">
+          <li [class.met]="hasUppercase()">At least one uppercase letter</li>
+          <li [class.met]="hasLowercase()">At least one lowercase letter</li>
+          <li [class.met]="hasDigit()">At least one digit</li>
+        </ul>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Confirm password</mat-label>
+          <input
+            matInput
+            [type]="hideConfirmPassword() ? 'password' : 'text'"
+            formControlName="confirmPassword"
+            autocomplete="new-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="toggleConfirmPasswordVisibility()"
+            [attr.aria-label]="hideConfirmPassword() ? 'Show password' : 'Hide password'"
+          >
+            <mat-icon>{{ hideConfirmPassword() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          @if (form.controls.confirmPassword.hasError('required') && form.controls.confirmPassword.touched) {
+            <mat-error>Confirm your password</mat-error>
+          } @else if (passwordMismatchVisible()) {
+            <mat-error>Passwords do not match</mat-error>
+          }
+        </mat-form-field>
+
+        @if (errorMessage(); as err) {
+          <div class="error-banner" role="alert">{{ err }}</div>
+        }
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="submit-btn full-width"
+          [disabled]="loading()"
+        >
+          @if (loading()) {
+            <mat-spinner diameter="22" />
+          } @else {
+            Create Organization
+          }
+        </button>
+      </form>
+
+      <p class="footer-link">
+        Already have an account?
+        <a routerLink="/login">Sign in</a>
+      </p>
+    </mat-card-content>
+  </mat-card>
+</div>

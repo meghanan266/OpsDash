@@ -43,3 +43,30 @@ body {
   margin: 0 auto;
   padding: 24px;
 }
+
+.opsdash-snackbar-success .mat-mdc-snackbar-surface {
+  background-color: #2e7d32 !important;
+}
+
+.opsdash-snackbar-success .mat-mdc-snack-bar-label,
+.opsdash-snackbar-success .mat-mdc-button.mat-mdc-snack-bar-action {
+  color: #fff !important;
+}
+
+.opsdash-snackbar-error .mat-mdc-snackbar-surface {
+  background-color: #c62828 !important;
+}
+
+.opsdash-snackbar-error .mat-mdc-snack-bar-label,
+.opsdash-snackbar-error .mat-mdc-button.mat-mdc-snack-bar-action {
+  color: #fff !important;
+}
+
+.opsdash-snackbar-info .mat-mdc-snackbar-surface {
+  background-color: #37474f !important;
+}
+
+.opsdash-snackbar-info .mat-mdc-snack-bar-label,
+.opsdash-snackbar-info .mat-mdc-button.mat-mdc-snack-bar-action {
+  color: #fff !important;
+}

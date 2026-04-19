@@ -8,7 +8,7 @@ namespace OpsDash.API.Controllers;
 
 [ApiController]
 [Authorize(Roles = "Admin")]
-[Tags("Audit logs")]
+[Tags("Audit Logs")]
 [Route("api/v1/audit-logs")]
 public sealed class AuditLogsController : ControllerBase
 {

@@ -1,0 +1,72 @@
+<h2 mat-dialog-title>{{ data.mode === 'create' ? 'Create Alert Rule' : 'Edit Alert Rule' }}</h2>
+
+<mat-dialog-content class="dlg">
+  @if (errorMessage(); as err) {
+    <p class="err">{{ err }}</p>
+  }
+
+  <form [formGroup]="form" class="form">
+    <mat-form-field appearance="outline">
+      <mat-label>Metric name</mat-label>
+      <input matInput formControlName="metricName" maxlength="200" autocomplete="off" />
+      @if (form.controls.metricName.hasError('required') && form.controls.metricName.touched) {
+        <mat-error>Metric name is required</mat-error>
+      }
+      @if (form.controls.metricName.hasError('maxlength')) {
+        <mat-error>Max 200 characters</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Operator</mat-label>
+      <mat-select formControlName="operator">
+        @for (op of operators; track op) {
+          <mat-option [value]="op">{{ op }}</mat-option>
+        }
+      </mat-select>
+      @if (form.controls.operator.hasError('required') && form.controls.operator.touched) {
+        <mat-error>Operator is required</mat-error>
+      }
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Threshold</mat-label>
+      <input matInput type="number" formControlName="threshold" />
+      @if (form.controls.threshold.hasError('required') && form.controls.threshold.touched) {
+        <mat-error>Threshold is required</mat-error>
+      }
+    </mat-form-field>
+
+    <div class="mode-block">
+      <div class="mode-label">Alert mode</div>
+      <mat-radio-group formControlName="alertMode" class="radio-row">
+        <mat-radio-button value="Current">Current</mat-radio-button>
+        <mat-radio-button value="Predictive">Predictive</mat-radio-button>
+      </mat-radio-group>
+    </div>
+
+    @if (form.controls.alertMode.value === 'Predictive') {
+      <mat-form-field appearance="outline">
+        <mat-label>Periods ahead</mat-label>
+        <input matInput type="number" formControlName="forecastHorizon" min="1" max="365" />
+        @if (form.controls.forecastHorizon.hasError('required') && form.controls.forecastHorizon.touched) {
+          <mat-error>Required for predictive mode</mat-error>
+        }
+        @if (form.controls.forecastHorizon.hasError('min') || form.controls.forecastHorizon.hasError('max')) {
+          <mat-error>Use 1–365</mat-error>
+        }
+      </mat-form-field>
+    }
+  </form>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button mat-button type="button" (click)="cancel()" [disabled]="saving()">Cancel</button>
+  <button mat-flat-button color="primary" type="button" (click)="save()" [disabled]="saving()">
+    @if (saving()) {
+      <mat-spinner diameter="20" />
+    } @else {
+      Save
+    }
+  </button>
+</mat-dialog-actions>

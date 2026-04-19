@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe, DecimalPipe, NgClass } from '@angular/common';
 import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -35,6 +35,7 @@ import { formatTimeAgo } from '../../dashboard/utils/time-ago';
     RouterLink,
     DatePipe,
     DecimalPipe,
+    NgClass,
   ],
   templateUrl: './incident-detail.component.html',
   styleUrl: './incident-detail.component.scss',
@@ -188,6 +189,71 @@ export class IncidentDetailComponent {
           this.snackBar.open('Export failed', 'Dismiss', { duration: 5000 });
         },
       });
+  }
+
+  parseMetrics(json: string): string[] {
+    if (!json?.trim()) {
+      return [];
+    }
+
+    try {
+      const v = JSON.parse(json) as unknown;
+      return Array.isArray(v) ? v.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  duration(inc: IncidentDetail): string {
+    const start = new Date(inc.startedAt).getTime();
+    const end = inc.resolvedAt ? new Date(inc.resolvedAt).getTime() : Date.now();
+    const ms = Math.max(0, end - start);
+    const s = Math.floor(ms / 1000);
+    const h = Math.floor(s / 3600);
+    const m = Math.floor((s % 3600) / 60);
+    if (h > 0) {
+      return `${h}h ${m}m`;
+    }
+
+    if (m > 0) {
+      return `${m}m`;
+    }
+
+    return '<1m';
+  }
+
+  severityChipClass(sev: string): string {
+    const s = (sev || '').toLowerCase();
+    if (s.includes('severe')) {
+      return 'sev-severe';
+    }
+
+    if (s.includes('critical')) {
+      return 'sev-critical';
+    }
+
+    return 'sev-warning';
+  }
+
+  statusChipClass(status: string): string {
+    const s = (status || '').toLowerCase();
+    if (s === 'open') {
+      return 'st-open';
+    }
+
+    if (s === 'acknowledged') {
+      return 'st-ack';
+    }
+
+    if (s === 'investigating') {
+      return 'st-inv';
+    }
+
+    if (s === 'resolved') {
+      return 'st-res';
+    }
+
+    return 'st-def';
   }
 
   formatOffset(sec: number): string {

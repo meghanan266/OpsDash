@@ -11,8 +11,8 @@
       <div>
         <h1>{{ inc.title }}</h1>
         <p class="meta">
-          <span class="chip sev">{{ inc.severity }}</span>
-          <span class="chip st">{{ inc.status }}</span>
+          <span class="chip" [ngClass]="severityChipClass(inc.severity)">{{ inc.severity }}</span>
+          <span class="chip" [ngClass]="statusChipClass(inc.status)">{{ inc.status }}</span>
           <span class="muted">Started {{ inc.startedAt | date: 'medium' }} · {{ timeAgo(inc.startedAt) }}</span>
         </p>
       </div>
@@ -38,6 +38,40 @@
         </mat-form-field>
         <button mat-flat-button color="primary" type="button" (click)="applyStatus()">Update status</button>
       </div>
+    </div>
+
+    <div class="summary-row">
+      <mat-card class="sum-card" appearance="outlined">
+        <mat-card-content>
+          <span class="sum-label">Started at</span>
+          <span class="sum-value">{{ inc.startedAt | date: 'medium' }}</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="sum-card" appearance="outlined">
+        <mat-card-content>
+          <span class="sum-label">Anomaly count</span>
+          <span class="sum-value">{{ inc.anomalyCount }}</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="sum-card" appearance="outlined">
+        <mat-card-content>
+          <span class="sum-label">Affected metrics</span>
+          <div class="sum-metrics">
+            @for (m of parseMetrics(inc.affectedMetrics); track m) {
+              <span class="mini-chip">{{ m }}</span>
+            }
+            @if (parseMetrics(inc.affectedMetrics).length === 0) {
+              <span class="muted">—</span>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="sum-card" appearance="outlined">
+        <mat-card-content>
+          <span class="sum-label">Duration</span>
+          <span class="sum-value">{{ duration(inc) }}</span>
+        </mat-card-content>
+      </mat-card>
     </div>
 
     <div class="grid">

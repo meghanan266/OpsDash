@@ -11,7 +11,7 @@ namespace OpsDash.API.Controllers;
 /// </summary>
 [ApiController]
 [Authorize]
-[Tags("Health score")]
+[Tags("Health Score")]
 [Route("api/v1/health-score")]
 public class HealthScoreController : ControllerBase
 {

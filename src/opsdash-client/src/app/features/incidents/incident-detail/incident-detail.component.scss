@@ -54,14 +54,95 @@ h1 {
   text-transform: capitalize;
 }
 
-.chip.sev {
+.sev-severe {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.sev-critical {
   background: #fff3e0;
   color: #e65100;
 }
 
-.chip.st {
+.sev-warning {
+  background: #fff8e1;
+  color: #f57f17;
+}
+
+.st-open {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.st-ack {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.st-inv {
   background: #e3f2fd;
   color: #1565c0;
+}
+
+.st-res {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.st-def {
+  background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 75%, transparent);
+}
+
+.summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 960px) {
+  .summary-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.sum-card {
+  border-radius: 12px;
+}
+
+.sum-card mat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sum-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+}
+
+.sum-value {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sum-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.mini-chip {
+  font-size: 0.65rem;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 10%, transparent);
+  color: var(--mat-sys-primary);
+  font-weight: 600;
 }
 
 .muted {

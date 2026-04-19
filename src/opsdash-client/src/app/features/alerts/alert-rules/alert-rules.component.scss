@@ -10,8 +10,48 @@ h1 {
   font-weight: 700;
 }
 
+.toolbar {
+  display: flex;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.grow {
+  flex: 1;
+}
+
 .tab-body {
   padding: 16px 0 8px;
+}
+
+.col-actions {
+  width: 108px;
+  text-align: right;
+}
+
+.type-chip-set {
+  --mdc-chip-container-height: 26px;
+}
+
+.hist-chip--pred {
+  --mdc-chip-elevated-container-color: #ede7f6;
+  --mdc-chip-label-text-color: #4527a0;
+}
+
+.hist-chip--cur {
+  --mdc-chip-elevated-container-color: #e3f2fd;
+  --mdc-chip-label-text-color: #1565c0;
+}
+
+.forecasted {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 88%, transparent);
+}
+
+.muted {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 45%, transparent);
+  font-size: 0.85rem;
 }
 
 .rules-table,

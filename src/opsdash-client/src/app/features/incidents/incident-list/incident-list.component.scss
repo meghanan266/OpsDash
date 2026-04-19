@@ -83,6 +83,14 @@ h1 {
   width: 100%;
 }
 
+.clickable-row {
+  cursor: pointer;
+}
+
+.clickable-row:hover {
+  background: color-mix(in srgb, var(--mat-sys-primary) 6%, transparent);
+}
+
 .sev-ico mat-icon {
   font-size: 22px;
   width: 22px;

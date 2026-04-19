@@ -213,6 +213,8 @@ public class AlertService : IAlertService
         return sortKey switch
         {
             "metricname" => desc ? query.OrderByDescending(r => r.MetricName) : query.OrderBy(r => r.MetricName),
+            "operator" => desc ? query.OrderByDescending(r => r.Operator) : query.OrderBy(r => r.Operator),
+            "alertmode" => desc ? query.OrderByDescending(r => r.AlertMode) : query.OrderBy(r => r.AlertMode),
             "threshold" => desc ? query.OrderByDescending(r => r.Threshold) : query.OrderBy(r => r.Threshold),
             "isactive" => desc ? query.OrderByDescending(r => r.IsActive) : query.OrderBy(r => r.IsActive),
             "createdat" => desc ? query.OrderByDescending(r => r.CreatedAt) : query.OrderBy(r => r.CreatedAt),

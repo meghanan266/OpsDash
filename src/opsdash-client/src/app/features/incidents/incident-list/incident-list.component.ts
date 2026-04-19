@@ -3,12 +3,11 @@ import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { MatButtonToggleChange, MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatCardModule } from '@angular/material/card';
-import { MatChipsModule } from '@angular/material/chips';
 import { MatIconModule } from '@angular/material/icon';
 import { MatPaginatorModule, PageEvent } from '@angular/material/paginator';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatTableModule } from '@angular/material/table';
-import { RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { forkJoin, of, Subject } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
 import type { IncidentRow } from '../../dashboard/models/dashboard.models';
@@ -34,6 +33,7 @@ import { IncidentsService } from '../incidents.service';
 export class IncidentListComponent {
   private readonly incidentsApi = inject(IncidentsService);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   readonly displayedColumns = ['severity', 'title', 'status', 'metrics', 'anomalyCount', 'duration', 'startedAt'];
 
@@ -188,5 +188,13 @@ export class IncidentListComponent {
 
   private reload(): void {
     this.reload$.next();
+  }
+
+  goDetail(id: number, ev: MouseEvent): void {
+    if ((ev.target as HTMLElement).closest('a')) {
+      return;
+    }
+
+    void this.router.navigate(['/incidents', id]);
   }
 }

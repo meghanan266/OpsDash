@@ -11,6 +11,23 @@ export interface AlertRuleRow {
   createdAt: string;
 }
 
+export interface CreateAlertRuleRequest {
+  metricName: string;
+  operator: string;
+  threshold: number;
+  alertMode: string;
+  forecastHorizon: number | null;
+}
+
+export interface UpdateAlertRuleRequest {
+  metricName?: string;
+  operator?: string;
+  threshold?: number;
+  alertMode?: string;
+  forecastHorizon?: number | null;
+  isActive?: boolean;
+}
+
 export interface AlertHistoryRow {
   id: number;
   metricName: string;

@@ -11,6 +11,7 @@ import type {
   HealthScoreNotification,
   IncidentNotification,
 } from '../models/notification.model';
+import { environment } from '../../../environments/environment';
 import { AuthService } from './auth.service';
 
 @Injectable({ providedIn: 'root' })
@@ -46,7 +47,7 @@ export class SignalRService {
     await this.stopConnection();
 
     const hubConnection = new HubConnectionBuilder()
-      .withUrl('/hubs/opsdash', {
+      .withUrl(environment.signalRUrl, {
         accessTokenFactory: () => this.auth.getToken() ?? '',
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])

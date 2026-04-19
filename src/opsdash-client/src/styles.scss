@@ -1,0 +1,45 @@
+// OpsDash theme: primary in the professional blue range (Material azure palette ~ #1976d2),
+// secondary/accent in the teal range (spring-green palette ~ #00897b), with system error styling for warn/red states.
+@use '@angular/material' as mat;
+
+@include mat.core();
+
+html {
+  color-scheme: light;
+
+  @include mat.theme(
+    (
+      color: (
+        theme-type: light,
+        primary: mat.$azure-palette,
+        tertiary: mat.$spring-green-palette,
+      ),
+      typography: (
+        brand-family: 'Roboto, system-ui, sans-serif',
+        plain-family: 'Roboto, system-ui, sans-serif',
+        bold-weight: 600,
+        medium-weight: 500,
+        regular-weight: 400,
+      ),
+      density: 0,
+    )
+  );
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Roboto, system-ui, sans-serif;
+  background: #fafafa;
+}
+
+.page-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 24px;
+}

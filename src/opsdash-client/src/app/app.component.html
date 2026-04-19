@@ -1,0 +1,46 @@
+@if (auth.isAuthenticated()) {
+  <mat-sidenav-container class="shell">
+    <mat-sidenav mode="side" opened class="sidenav">
+      <mat-nav-list>
+        <a mat-list-item routerLink="/dashboard" routerLinkActive="active-link">
+          <mat-icon matListItemIcon>dashboard</mat-icon>
+          <span matListItemTitle>Dashboard</span>
+        </a>
+        <a mat-list-item routerLink="/incidents" routerLinkActive="active-link">
+          <mat-icon matListItemIcon>warning</mat-icon>
+          <span matListItemTitle>Incidents</span>
+        </a>
+        <a mat-list-item routerLink="/alerts" routerLinkActive="active-link">
+          <mat-icon matListItemIcon>notifications</mat-icon>
+          <span matListItemTitle>Alert Rules</span>
+        </a>
+        @if (auth.isAdmin()) {
+          <a mat-list-item routerLink="/users" routerLinkActive="active-link">
+            <mat-icon matListItemIcon>people</mat-icon>
+            <span matListItemTitle>Users</span>
+          </a>
+        }
+      </mat-nav-list>
+    </mat-sidenav>
+    <mat-sidenav-content>
+      <mat-toolbar color="primary" class="toolbar">
+        <span class="brand">OpsDash</span>
+        <span class="spacer"></span>
+        @if (auth.currentUser(); as user) {
+          <span class="user-meta">
+            {{ user.firstName }} {{ user.lastName }}
+            <span class="tenant"> · {{ user.tenantName }}</span>
+          </span>
+        }
+        <button mat-icon-button type="button" aria-label="Log out" (click)="logout()">
+          <mat-icon>logout</mat-icon>
+        </button>
+      </mat-toolbar>
+      <div class="page-container">
+        <router-outlet />
+      </div>
+    </mat-sidenav-content>
+  </mat-sidenav-container>
+} @else {
+  <router-outlet />
+}

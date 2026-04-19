@@ -45,6 +45,9 @@ _ReSharper*/
 secrets.json
 
 ## Angular / Node
+src/opsdash-client/node_modules/
+src/opsdash-client/dist/
+src/opsdash-client/.angular/
 node_modules/
 npm-debug.log*
 yarn-debug.log*

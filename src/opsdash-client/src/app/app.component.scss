@@ -1,0 +1,35 @@
+.shell {
+  height: 100vh;
+}
+
+.sidenav {
+  width: 240px;
+}
+
+.toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.brand {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.user-meta {
+  font-size: 14px;
+  margin-right: 8px;
+}
+
+.tenant {
+  opacity: 0.9;
+}
+
+.active-link {
+  background: rgba(0, 0, 0, 0.06);
+}

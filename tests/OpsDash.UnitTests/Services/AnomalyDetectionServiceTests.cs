@@ -58,11 +58,14 @@ public sealed class AnomalyDetectionServiceTests
             .ReturnsAsync((int?)null);
         incidentAutoGroup.Setup(i => i.CheckAndAutoResolveIncidentsAsync()).Returns(Task.CompletedTask);
 
+        var realtime = new Mock<IRealtimeNotificationService>();
+
         return new AnomalyDetectionService(
             db.Object,
             tenant.Object,
             correlation.Object,
             incidentAutoGroup.Object,
+            realtime.Object,
             NullLogger<AnomalyDetectionService>.Instance,
             Options.Create(settings ?? new AnomalyDetectionSettings()));
     }

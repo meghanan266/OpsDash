@@ -45,10 +45,13 @@ public sealed class IncidentAutoGroupServiceTests
         var tenant = new Mock<ITenantContextService>();
         tenant.Setup(t => t.TenantId).Returns(tenantId);
 
+        var realtime = new Mock<IRealtimeNotificationService>();
+
         return new IncidentAutoGroupService(
             db.Object,
             tenant.Object,
             Options.Create(settings ?? new AnomalyDetectionSettings { IncidentGroupingWindowMinutes = 30 }),
+            realtime.Object,
             NullLogger<IncidentAutoGroupService>.Instance);
     }
 

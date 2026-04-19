@@ -8,6 +8,8 @@ import type { ChartConfiguration, ChartData } from 'chart.js';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import type { HealthScore } from '../../../../core/models/common.model';
+import type { HealthScoreNotification } from '../../../../core/models/notification.model';
+import { DashboardRealtimeBridge } from '../../../../core/services/dashboard-realtime.bridge';
 import { DashboardService } from '../../services/dashboard.service';
 
 @Component({
@@ -19,6 +21,7 @@ import { DashboardService } from '../../services/dashboard.service';
 })
 export class HealthScoreComponent {
   private readonly dashboard = inject(DashboardService);
+  private readonly bridge = inject(DashboardRealtimeBridge);
   private readonly destroyRef = inject(DestroyRef);
 
   /** SVG circle r=52 */
@@ -91,6 +94,54 @@ export class HealthScoreComponent {
 
         this.loading.set(false);
       });
+
+    this.bridge.healthScoreUpdated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((n) => {
+      this.applyHealthScorePatch(n);
+    });
+  }
+
+  private applyHealthScorePatch(n: HealthScoreNotification): void {
+    const calculatedAt = this.toIso(n.calculatedAt);
+    const cur = this.healthScore();
+    this.healthScore.set({
+      id: cur?.id ?? 0,
+      overallScore: Number(n.overallScore),
+      normalMetricPct: Number(n.normalMetricPct),
+      activeAnomalies: n.activeAnomalies,
+      trendScore: cur?.trendScore ?? 0,
+      responseScore: cur?.responseScore ?? 0,
+      calculatedAt,
+    });
+
+    const synthetic: HealthScore = {
+      id: 0,
+      overallScore: Number(n.overallScore),
+      normalMetricPct: Number(n.normalMetricPct),
+      activeAnomalies: n.activeAnomalies,
+      trendScore: cur?.trendScore ?? 0,
+      responseScore: cur?.responseScore ?? 0,
+      calculatedAt,
+    };
+
+    const merged = [...this.historyScores(), synthetic]
+      .sort((a, b) => new Date(a.calculatedAt).getTime() - new Date(b.calculatedAt).getTime())
+      .slice(-7);
+    this.historyScores.set(merged);
+    if (merged.length > 1) {
+      this.updateSparkline(merged);
+    }
+  }
+
+  private toIso(value: string | Date): string {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return new Date(value as unknown as string).toISOString();
   }
 
   private updateSparkline(rows: HealthScore[]): void {

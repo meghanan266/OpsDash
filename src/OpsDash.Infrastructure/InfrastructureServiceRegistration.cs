@@ -23,6 +23,8 @@ public static class InfrastructureServiceRegistration
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<ITokenService, TokenService>();
 
+        // IRealtimeNotificationService is registered in OpsDash.API (Program.cs) with SignalR (host owns IHubContext).
+
         return services;
     }
 }

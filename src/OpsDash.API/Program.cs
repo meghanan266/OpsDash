@@ -8,8 +8,11 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using OpsDash.API.Filters;
 using OpsDash.API.Health;
+using OpsDash.API.Hubs;
 using OpsDash.API.Middleware;
+using OpsDash.API.Services;
 using OpsDash.Application;
+using OpsDash.Application.Interfaces;
 using OpsDash.Infrastructure;
 using OpsDash.Infrastructure.Data;
 using OpsDash.Infrastructure.Data.SeedData;
@@ -68,7 +71,8 @@ builder.Services.AddCors(options =>
         {
             policy.WithOrigins(corsOrigins)
                 .AllowAnyHeader()
-                .AllowAnyMethod();
+                .AllowAnyMethod()
+                .AllowCredentials();
         });
 });
 
@@ -93,9 +97,27 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
             ClockSkew = TimeSpan.Zero,
         };
+
+        options.Events = new JwtBearerEvents
+        {
+            OnMessageReceived = context =>
+            {
+                var accessToken = context.Request.Query["access_token"].ToString();
+                var path = context.HttpContext.Request.Path;
+                if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/hubs"))
+                {
+                    context.Token = accessToken;
+                }
+
+                return Task.CompletedTask;
+            },
+        };
     });
 
 builder.Services.AddAuthorization();
+
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
 
@@ -133,6 +155,7 @@ app.UseAuthorization();
 app.UseMiddleware<TenantResolutionMiddleware>();
 
 app.MapControllers();
+app.MapHub<OpsDashHub>("/hubs/opsdash");
 
 app.Run();
 

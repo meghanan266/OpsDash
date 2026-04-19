@@ -1,8 +1,10 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpsDash.Application.DTOs.Anomalies;
 using OpsDash.Application.DTOs.Common;
 using OpsDash.Application.DTOs.Incidents;
+using OpsDash.Application.DTOs.Notifications;
 using OpsDash.Application.Interfaces;
 using OpsDash.Domain.Entities;
 
@@ -13,12 +15,21 @@ public class IncidentService : IIncidentService
     private readonly IAppDbContext _db;
     private readonly IMapper _mapper;
     private readonly ITenantContextService _tenantContext;
+    private readonly IRealtimeNotificationService _realtimeNotifications;
+    private readonly ILogger<IncidentService> _logger;
 
-    public IncidentService(IAppDbContext db, IMapper mapper, ITenantContextService tenantContext)
+    public IncidentService(
+        IAppDbContext db,
+        IMapper mapper,
+        ITenantContextService tenantContext,
+        IRealtimeNotificationService realtimeNotifications,
+        ILogger<IncidentService> logger)
     {
         _db = db;
         _mapper = mapper;
         _tenantContext = tenantContext;
+        _realtimeNotifications = realtimeNotifications;
+        _logger = logger;
     }
 
     public async Task<ApiResponse<PagedResult<IncidentDto>>> GetIncidentsAsync(
@@ -146,6 +157,15 @@ public class IncidentService : IIncidentService
 
         await _db.SaveChangesAsync();
 
+        try
+        {
+            await _realtimeNotifications.NotifyIncidentUpdatedAsync(tenantId, ToIncidentNotification(incident));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to push incident updated notification for tenant {TenantId}", tenantId);
+        }
+
         return ApiResponse<IncidentDto>.Ok(_mapper.Map<IncidentDto>(incident));
     }
 
@@ -177,8 +197,29 @@ public class IncidentService : IIncidentService
 
         await _db.SaveChangesAsync();
 
+        try
+        {
+            await _realtimeNotifications.NotifyIncidentUpdatedAsync(tenantId, ToIncidentNotification(incident));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to push incident updated notification for tenant {TenantId}", tenantId);
+        }
+
         return ApiResponse<IncidentDto>.Ok(_mapper.Map<IncidentDto>(incident));
     }
+
+    private static IncidentNotification ToIncidentNotification(Incident incident) =>
+        new()
+        {
+            IncidentId = incident.Id,
+            Title = incident.Title,
+            Severity = incident.Severity,
+            Status = incident.Status,
+            AnomalyCount = incident.AnomalyCount,
+            AffectedMetrics = string.IsNullOrEmpty(incident.AffectedMetrics) ? "[]" : incident.AffectedMetrics,
+            StartedAt = incident.StartedAt,
+        };
 
     private static IQueryable<Incident> ApplySorting(IQueryable<Incident> query, PagedRequest paging)
     {

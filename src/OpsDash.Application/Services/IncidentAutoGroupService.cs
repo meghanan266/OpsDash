@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpsDash.Application.Configuration;
+using OpsDash.Application.DTOs.Notifications;
 using OpsDash.Application.Interfaces;
 using OpsDash.Domain.Entities;
 
@@ -15,17 +16,20 @@ public sealed class IncidentAutoGroupService : IIncidentAutoGroupService
     private readonly IAppDbContext _db;
     private readonly ITenantContextService _tenantContext;
     private readonly AnomalyDetectionSettings _settings;
+    private readonly IRealtimeNotificationService _realtimeNotifications;
     private readonly ILogger<IncidentAutoGroupService> _logger;
 
     public IncidentAutoGroupService(
         IAppDbContext db,
         ITenantContextService tenantContext,
         IOptions<AnomalyDetectionSettings> options,
+        IRealtimeNotificationService realtimeNotifications,
         ILogger<IncidentAutoGroupService> logger)
     {
         _db = db;
         _tenantContext = tenantContext;
         _settings = options.Value;
+        _realtimeNotifications = realtimeNotifications;
         _logger = logger;
     }
 
@@ -76,6 +80,15 @@ public sealed class IncidentAutoGroupService : IIncidentAutoGroupService
             await _db.SaveChangesAsync();
 
             _logger.LogInformation("Anomaly {Id} added to existing incident {IncidentId}", anomaly.Id, existingIncident.Id);
+
+            try
+            {
+                await _realtimeNotifications.NotifyIncidentUpdatedAsync(tenantId, ToIncidentNotification(existingIncident));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to push incident updated notification for tenant {TenantId}", tenantId);
+            }
 
             return existingIncident.Id;
         }
@@ -132,6 +145,15 @@ public sealed class IncidentAutoGroupService : IIncidentAutoGroupService
 
         _logger.LogInformation("New incident {Id} created for anomaly on {MetricName}", incident.Id, anomaly.MetricName);
 
+        try
+        {
+            await _realtimeNotifications.NotifyIncidentCreatedAsync(tenantId, ToIncidentNotification(incident));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to push incident created notification for tenant {TenantId}", tenantId);
+        }
+
         return incident.Id;
     }
 
@@ -146,6 +168,7 @@ public sealed class IncidentAutoGroupService : IIncidentAutoGroupService
 
         var now = DateTime.UtcNow;
         var anyChange = false;
+        var autoResolved = new List<Incident>();
 
         foreach (var incident in incidents)
         {
@@ -176,14 +199,39 @@ public sealed class IncidentAutoGroupService : IIncidentAutoGroupService
             });
 
             anyChange = true;
+            autoResolved.Add(incident);
             _logger.LogInformation("Incident {Id} auto-resolved", incident.Id);
         }
 
         if (anyChange)
         {
             await _db.SaveChangesAsync();
+
+            foreach (var inc in autoResolved)
+            {
+                try
+                {
+                    await _realtimeNotifications.NotifyIncidentUpdatedAsync(tenantId, ToIncidentNotification(inc));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to push incident updated notification for tenant {TenantId}", tenantId);
+                }
+            }
         }
     }
+
+    private static IncidentNotification ToIncidentNotification(Incident incident) =>
+        new()
+        {
+            IncidentId = incident.Id,
+            Title = incident.Title,
+            Severity = incident.Severity,
+            Status = incident.Status,
+            AnomalyCount = incident.AnomalyCount,
+            AffectedMetrics = string.IsNullOrEmpty(incident.AffectedMetrics) ? "[]" : incident.AffectedMetrics,
+            StartedAt = incident.StartedAt,
+        };
 
     private static string MergeAffectedMetricsJson(string? existingJson, string metricName)
     {

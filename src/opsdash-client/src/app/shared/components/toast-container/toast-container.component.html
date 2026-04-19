@@ -1,0 +1,24 @@
+<div class="toast-stack" aria-live="polite">
+  @for (t of toasts.toasts(); track t.id) {
+    <button type="button" class="toast toast--{{ t.tone }}" (click)="onClick(t)">
+      <mat-icon class="toast-icon">{{ icon(t.tone) }}</mat-icon>
+      <div class="toast-body">
+        <div class="toast-title">{{ t.title }}</div>
+        <div class="toast-desc">{{ t.description }}</div>
+        <div class="toast-time">{{ t.createdAt | date: 'mediumTime' }}</div>
+      </div>
+      <span
+        type="button"
+        class="toast-close"
+        role="button"
+        tabindex="0"
+        (click)="dismiss(t.id, $event)"
+        (keydown.enter)="dismiss(t.id, $event)"
+        (keydown.space)="dismiss(t.id, $event)"
+        aria-label="Dismiss"
+      >
+        <mat-icon>close</mat-icon>
+      </span>
+    </button>
+  }
+</div>

@@ -32,7 +32,13 @@ public sealed class HealthScoreComputeServiceTests
         var tenant = new Mock<ITenantContextService>();
         tenant.Setup(t => t.TenantId).Returns(tenantId);
 
-        return new HealthScoreComputeService(db.Object, tenant.Object, NullLogger<HealthScoreComputeService>.Instance);
+        var realtime = new Mock<IRealtimeNotificationService>();
+
+        return new HealthScoreComputeService(
+            db.Object,
+            tenant.Object,
+            realtime.Object,
+            NullLogger<HealthScoreComputeService>.Instance);
     }
 
     [Fact]

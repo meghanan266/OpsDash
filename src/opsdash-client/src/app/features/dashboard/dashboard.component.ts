@@ -1,4 +1,4 @@
-import { Component, computed, inject, model, signal } from '@angular/core';
+import { Component, computed, DestroyRef, inject, model, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonToggleChange, MatButtonToggleModule } from '@angular/material/button-toggle';
@@ -16,6 +16,8 @@ import { HealthScoreComponent } from './components/health-score/health-score.com
 import { KpiSummaryComponent } from './components/kpi-summary/kpi-summary.component';
 import { MetricChartComponent } from './components/metric-chart/metric-chart.component';
 import { RecentIncidentsPanelComponent } from './components/recent-incidents-panel/recent-incidents-panel.component';
+import type { AnomalyNotification, IncidentNotification } from '../../core/models/notification.model';
+import { DashboardRealtimeBridge } from '../../core/services/dashboard-realtime.bridge';
 import type { Anomaly, ForecastPoint, IncidentRow, MetricHistoryPoint, MetricRow, MetricSummary } from './models/dashboard.models';
 import { DashboardService } from './services/dashboard.service';
 
@@ -40,6 +42,8 @@ import { DashboardService } from './services/dashboard.service';
 })
 export class DashboardComponent {
   private readonly dashboard = inject(DashboardService);
+  private readonly realtimeBridge = inject(DashboardRealtimeBridge);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly filterStart = model<string>('');
   readonly filterEnd = model<string>('');
@@ -66,6 +70,19 @@ export class DashboardComponent {
 
   constructor() {
     this.reloadAll();
+
+    this.realtimeBridge.anomalyDetected$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((n) => {
+      const row = this.toAnomalyRow(n);
+      this.anomalies.update((list) => (list.some((a) => a.id === row.id) ? list : [row, ...list]));
+    });
+
+    this.realtimeBridge.incidentCreated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((n) => {
+      this.upsertIncidentRow(this.toIncidentRow(n));
+    });
+
+    this.realtimeBridge.incidentUpdated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((n) => {
+      this.upsertIncidentRow(this.toIncidentRow(n));
+    });
 
     toObservable(this.filterCategory)
       .pipe(distinctUntilChanged(), takeUntilDestroyed())
@@ -397,5 +414,52 @@ export class DashboardComponent {
 
   private loadTable(): void {
     this.loadTableRequest().subscribe((res) => this.applyTableResult(res));
+  }
+
+  private upsertIncidentRow(row: IncidentRow): void {
+    this.incidents.update((list) => {
+      const others = list.filter((i) => i.id !== row.id);
+      return [row, ...others].slice(0, 5);
+    });
+  }
+
+  private toAnomalyRow(n: AnomalyNotification): Anomaly {
+    return {
+      id: n.anomalyId,
+      metricName: n.metricName,
+      metricValue: n.metricValue,
+      zScore: n.zScore,
+      severity: n.severity,
+      detectedAt: this.toIso(n.detectedAt),
+      isActive: true,
+      resolvedAt: null,
+      incidentId: n.incidentId,
+    };
+  }
+
+  private toIncidentRow(n: IncidentNotification): IncidentRow {
+    return {
+      id: n.incidentId,
+      title: n.title,
+      severity: n.severity,
+      status: n.status,
+      anomalyCount: n.anomalyCount,
+      affectedMetrics: n.affectedMetrics,
+      startedAt: this.toIso(n.startedAt),
+      acknowledgedAt: null,
+      resolvedAt: null,
+    };
+  }
+
+  private toIso(value: string | Date): string {
+    if (value instanceof Date) {
+      return value.toISOString();
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return new Date(value as unknown as string).toISOString();
   }
 }

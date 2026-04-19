@@ -42,7 +42,7 @@
           <strong>{{ h.responseScore | number: '1.0-1' }}</strong>
         </div>
       </div>
-      @if (historyScores().length > 1) {
+      @if (historyScores().length > 0) {
         <div class="spark-wrap">
           <span class="spark-label">Last {{ historyScores().length }} scores</span>
           <div class="spark-chart">

@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using OpsDash.Application.Configuration;
 using OpsDash.Application.DTOs.Anomalies;
+using OpsDash.Application.DTOs.Notifications;
 using OpsDash.Application.Interfaces;
 using OpsDash.Domain.Entities;
 
@@ -17,6 +18,7 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
     private readonly ITenantContextService _tenantContext;
     private readonly ICorrelationService _correlationService;
     private readonly IIncidentAutoGroupService _incidentAutoGroupService;
+    private readonly IRealtimeNotificationService _realtimeNotifications;
     private readonly ILogger<AnomalyDetectionService> _logger;
     private readonly AnomalyDetectionSettings _settings;
 
@@ -25,6 +27,7 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
         ITenantContextService tenantContext,
         ICorrelationService correlationService,
         IIncidentAutoGroupService incidentAutoGroupService,
+        IRealtimeNotificationService realtimeNotifications,
         ILogger<AnomalyDetectionService> logger,
         IOptions<AnomalyDetectionSettings> options)
     {
@@ -32,6 +35,7 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
         _tenantContext = tenantContext;
         _correlationService = correlationService;
         _incidentAutoGroupService = incidentAutoGroupService;
+        _realtimeNotifications = realtimeNotifications;
         _logger = logger;
         _settings = options.Value;
     }
@@ -173,6 +177,26 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
                     Correlations = correlations,
                     IncidentId = incidentId,
                 };
+
+                try
+                {
+                    await _realtimeNotifications.NotifyAnomalyDetectedAsync(
+                        tenantId,
+                        new AnomalyNotification
+                        {
+                            AnomalyId = score.Id,
+                            MetricName = metric.MetricName,
+                            MetricValue = metric.MetricValue,
+                            ZScore = zScore,
+                            Severity = severity,
+                            DetectedAt = score.DetectedAt,
+                            IncidentId = incidentId,
+                        });
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to push anomaly realtime notification for tenant {TenantId}", tenantId);
+                }
 
                 return result;
             }

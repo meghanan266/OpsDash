@@ -15,6 +15,7 @@ import { catchError, finalize, switchMap, take } from 'rxjs/operators';
 import { of } from 'rxjs';
 import type { IncidentDetail } from '../models/incident.models';
 import { IncidentsService } from '../incidents.service';
+import { DashboardRealtimeBridge } from '../../../core/services/dashboard-realtime.bridge';
 import { formatTimeAgo } from '../../dashboard/utils/time-ago';
 
 @Component({
@@ -42,6 +43,7 @@ export class IncidentDetailComponent {
   private readonly incidentsApi = inject(IncidentsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
+  private readonly realtimeBridge = inject(DashboardRealtimeBridge);
 
   readonly loading = signal(true);
   readonly incident = signal<IncidentDetail | null>(null);
@@ -76,6 +78,13 @@ export class IncidentDetailComponent {
           this.statusEdit.set('');
         }
       });
+
+    this.realtimeBridge.incidentUpdated$.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((n) => {
+      const cur = Number(this.route.snapshot.paramMap.get('id'));
+      if (n.incidentId === cur) {
+        this.reloadOne(n.incidentId);
+      }
+    });
   }
 
   eventDotClass(type: string): string {

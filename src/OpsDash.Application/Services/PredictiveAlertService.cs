@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using OpsDash.Application.DTOs.Notifications;
 using OpsDash.Application.Interfaces;
 using OpsDash.Domain.Entities;
 
@@ -10,17 +11,20 @@ public sealed class PredictiveAlertService : IPredictiveAlertService
     private readonly IAppDbContext _db;
     private readonly ITenantContextService _tenantContext;
     private readonly IForecastService _forecastService;
+    private readonly IRealtimeNotificationService _realtimeNotifications;
     private readonly ILogger<PredictiveAlertService> _logger;
 
     public PredictiveAlertService(
         IAppDbContext db,
         ITenantContextService tenantContext,
         IForecastService forecastService,
+        IRealtimeNotificationService realtimeNotifications,
         ILogger<PredictiveAlertService> logger)
     {
         _db = db;
         _tenantContext = tenantContext;
         _forecastService = forecastService;
+        _realtimeNotifications = realtimeNotifications;
         _logger = logger;
     }
 
@@ -66,7 +70,7 @@ public sealed class PredictiveAlertService : IPredictiveAlertService
                 continue;
             }
 
-            _db.Alerts.Add(new Alert
+            var alert = new Alert
             {
                 TenantId = tenantId,
                 AlertRuleId = rule.Id,
@@ -74,8 +78,9 @@ public sealed class PredictiveAlertService : IPredictiveAlertService
                 IsPredictive = false,
                 ForecastedValue = null,
                 TriggeredAt = now,
-            });
+            };
 
+            _db.Alerts.Add(alert);
             await _db.SaveChangesAsync();
 
             _logger.LogInformation(
@@ -84,6 +89,26 @@ public sealed class PredictiveAlertService : IPredictiveAlertService
                 rule.Operator,
                 rule.Threshold,
                 metric.MetricValue);
+
+            try
+            {
+                await _realtimeNotifications.NotifyAlertTriggeredAsync(
+                    tenantId,
+                    new AlertNotification
+                    {
+                        AlertId = alert.Id,
+                        MetricName = metric.MetricName,
+                        MetricValue = metric.MetricValue,
+                        Threshold = rule.Threshold,
+                        Operator = rule.Operator,
+                        IsPredictive = false,
+                        TriggeredAt = now,
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to push alert realtime notification for tenant {TenantId}", tenantId);
+            }
         }
     }
 
@@ -158,7 +183,7 @@ public sealed class PredictiveAlertService : IPredictiveAlertService
                 continue;
             }
 
-            _db.Alerts.Add(new Alert
+            var alert = new Alert
             {
                 TenantId = tenantId,
                 AlertRuleId = rule.Id,
@@ -166,8 +191,9 @@ public sealed class PredictiveAlertService : IPredictiveAlertService
                 IsPredictive = true,
                 ForecastedValue = breachValue,
                 TriggeredAt = now,
-            });
+            };
 
+            _db.Alerts.Add(alert);
             await _db.SaveChangesAsync();
 
             var horizonLabel = rule.ForecastHorizon ?? take;
@@ -177,6 +203,26 @@ public sealed class PredictiveAlertService : IPredictiveAlertService
                 rule.Operator,
                 rule.Threshold,
                 horizonLabel);
+
+            try
+            {
+                await _realtimeNotifications.NotifyAlertTriggeredAsync(
+                    tenantId,
+                    new AlertNotification
+                    {
+                        AlertId = alert.Id,
+                        MetricName = metricName,
+                        MetricValue = latestValue,
+                        Threshold = rule.Threshold,
+                        Operator = rule.Operator,
+                        IsPredictive = true,
+                        TriggeredAt = now,
+                    });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to push predictive alert realtime notification for tenant {TenantId}", tenantId);
+            }
         }
     }
 

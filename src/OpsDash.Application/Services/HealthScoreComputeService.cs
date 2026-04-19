@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using OpsDash.Application.DTOs.Notifications;
 using OpsDash.Application.Interfaces;
 using OpsDash.Domain.Entities;
 
@@ -9,15 +10,18 @@ public sealed class HealthScoreComputeService : IHealthScoreComputeService
 {
     private readonly IAppDbContext _db;
     private readonly ITenantContextService _tenantContext;
+    private readonly IRealtimeNotificationService _realtimeNotifications;
     private readonly ILogger<HealthScoreComputeService> _logger;
 
     public HealthScoreComputeService(
         IAppDbContext db,
         ITenantContextService tenantContext,
+        IRealtimeNotificationService realtimeNotifications,
         ILogger<HealthScoreComputeService> logger)
     {
         _db = db;
         _tenantContext = tenantContext;
+        _realtimeNotifications = realtimeNotifications;
         _logger = logger;
     }
 
@@ -130,6 +134,23 @@ public sealed class HealthScoreComputeService : IHealthScoreComputeService
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Health score computed for tenant {TenantId}: {Score}", tenantId, roundedOverall);
+
+        try
+        {
+            await _realtimeNotifications.NotifyHealthScoreUpdatedAsync(
+                tenantId,
+                new HealthScoreNotification
+                {
+                    OverallScore = roundedOverall,
+                    NormalMetricPct = normalMetricPct,
+                    ActiveAnomalies = activeAnomalyCount,
+                    CalculatedAt = now,
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Failed to push health score realtime notification for tenant {TenantId}", tenantId);
+        }
 
         return roundedOverall;
     }

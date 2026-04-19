@@ -13,5 +13,7 @@ public class MetricDto
     public DateTime RecordedAt { get; set; }
 
     public DateTime CreatedAt { get; set; }
+
+    public bool AnomalyDetected { get; set; }
 }
 

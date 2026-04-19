@@ -1,6 +1,7 @@
 using AutoMapper;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using OpsDash.Application.DTOs.Common;
 using OpsDash.Application.DTOs.Metrics;
 using OpsDash.Application.Interfaces;
@@ -13,12 +14,21 @@ public class MetricService : IMetricService
     private readonly IAppDbContext _db;
     private readonly IMapper _mapper;
     private readonly ITenantContextService _tenantContext;
+    private readonly IAnomalyDetectionService _anomalyDetectionService;
+    private readonly ILogger<MetricService> _logger;
 
-    public MetricService(IAppDbContext db, IMapper mapper, ITenantContextService tenantContext)
+    public MetricService(
+        IAppDbContext db,
+        IMapper mapper,
+        ITenantContextService tenantContext,
+        IAnomalyDetectionService anomalyDetectionService,
+        ILogger<MetricService> logger)
     {
         _db = db;
         _mapper = mapper;
         _tenantContext = tenantContext;
+        _anomalyDetectionService = anomalyDetectionService;
+        _logger = logger;
     }
 
     public async Task<ApiResponse<MetricDto>> IngestMetricAsync(IngestMetricRequest request)
@@ -31,7 +41,20 @@ public class MetricService : IMetricService
         _db.Metrics.Add(metric);
         await _db.SaveChangesAsync();
 
-        return ApiResponse<MetricDto>.Ok(_mapper.Map<MetricDto>(metric));
+        var anomalyResult = await _anomalyDetectionService.AnalyzeMetricAsync(metric.Id);
+        if (anomalyResult.IsAnomaly)
+        {
+            _logger.LogInformation(
+                "Ingest anomaly: {MetricName} value {Value}, severity {Severity}, Z-score {ZScore}",
+                anomalyResult.MetricName,
+                anomalyResult.MetricValue,
+                anomalyResult.Severity,
+                anomalyResult.ZScore);
+        }
+
+        var dto = _mapper.Map<MetricDto>(metric);
+        dto.AnomalyDetected = anomalyResult.IsAnomaly;
+        return ApiResponse<MetricDto>.Ok(dto);
     }
 
     public async Task<ApiResponse<List<MetricDto>>> IngestBatchAsync(BatchIngestMetricRequest request)
@@ -51,7 +74,24 @@ public class MetricService : IMetricService
         await _db.Metrics.AddRangeAsync(metrics);
         await _db.SaveChangesAsync();
 
-        return ApiResponse<List<MetricDto>>.Ok(_mapper.Map<List<MetricDto>>(metrics));
+        var dtos = _mapper.Map<List<MetricDto>>(metrics);
+        for (var i = 0; i < metrics.Count; i++)
+        {
+            var result = await _anomalyDetectionService.AnalyzeMetricAsync(metrics[i].Id);
+            if (result.IsAnomaly)
+            {
+                _logger.LogInformation(
+                    "Batch ingest anomaly: {MetricName} value {Value}, severity {Severity}, Z-score {ZScore}",
+                    result.MetricName,
+                    result.MetricValue,
+                    result.Severity,
+                    result.ZScore);
+            }
+
+            dtos[i].AnomalyDetected = result.IsAnomaly;
+        }
+
+        return ApiResponse<List<MetricDto>>.Ok(dtos);
     }
 
     public async Task<ApiResponse<PagedResult<MetricDto>>> GetMetricsAsync(string? category, PagedRequest paging)

@@ -21,6 +21,12 @@ public class AnomalyService : IAnomalyService
     public async Task<ApiResponse<PagedResult<AnomalyDto>>> GetAnomaliesAsync(PagedRequest paging)
     {
         paging ??= new PagedRequest();
+        if (string.IsNullOrWhiteSpace(paging.SortBy))
+        {
+            paging.SortBy = "detectedat";
+            paging.SortDirection = "desc";
+        }
+
         var query = _db.AnomalyScores.AsNoTracking();
         query = ApplySorting(query, paging);
 
@@ -42,6 +48,12 @@ public class AnomalyService : IAnomalyService
     public async Task<ApiResponse<PagedResult<AnomalyDto>>> GetActiveAnomaliesAsync(PagedRequest paging)
     {
         paging ??= new PagedRequest();
+        if (string.IsNullOrWhiteSpace(paging.SortBy))
+        {
+            paging.SortBy = "detectedat";
+            paging.SortDirection = "desc";
+        }
+
         var query = _db.AnomalyScores.AsNoTracking().Where(a => a.IsActive);
         query = ApplySorting(query, paging);
 

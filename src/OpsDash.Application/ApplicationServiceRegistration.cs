@@ -31,6 +31,9 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IPredictiveAlertService, PredictiveAlertService>();
         services.AddScoped<IHealthScoreComputeService, HealthScoreComputeService>();
         services.AddScoped<IIncidentAutoGroupService, IncidentAutoGroupService>();
+        services.AddScoped<IDashboardSummaryQuery, DashboardSummaryQuery>();
+        services.AddScoped<IAuditService, AuditService>();
+        services.AddScoped<IReportService, ReportService>();
 
         return services;
     }

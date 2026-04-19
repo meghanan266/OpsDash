@@ -2,10 +2,11 @@ import { Component, computed, DestroyRef, inject, model, signal } from '@angular
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonToggleChange, MatButtonToggleModule } from '@angular/material/button-toggle';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
-import { combineLatest, forkJoin, of } from 'rxjs';
+import { combineLatest, forkJoin, of, take } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, skip, switchMap } from 'rxjs/operators';
 import type { ApiResponse, PagedResult } from '../../core/models/common.model';
 import { AnomalyFeedComponent } from './components/anomaly-feed/anomaly-feed.component';
@@ -20,6 +21,7 @@ import type { AnomalyNotification, IncidentNotification } from '../../core/model
 import { DashboardRealtimeBridge } from '../../core/services/dashboard-realtime.bridge';
 import type { Anomaly, ForecastPoint, IncidentRow, MetricHistoryPoint, MetricRow, MetricSummary } from './models/dashboard.models';
 import { DashboardService } from './services/dashboard.service';
+import { ReportsService } from '../../core/services/reports.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -27,6 +29,7 @@ import { DashboardService } from './services/dashboard.service';
   imports: [
     MatCardModule,
     MatButtonToggleModule,
+    MatSnackBarModule,
     MatProgressBarModule,
     DashboardFilterBarComponent,
     HealthScoreComponent,
@@ -42,6 +45,8 @@ import { DashboardService } from './services/dashboard.service';
 })
 export class DashboardComponent {
   private readonly dashboard = inject(DashboardService);
+  private readonly reports = inject(ReportsService);
+  private readonly snackBar = inject(MatSnackBar);
   private readonly realtimeBridge = inject(DashboardRealtimeBridge);
   private readonly destroyRef = inject(DestroyRef);
 
@@ -50,6 +55,7 @@ export class DashboardComponent {
   readonly filterCategory = model<string | null>(null);
 
   readonly loading = signal(false);
+  readonly exportBusy = signal(false);
   readonly categories = signal<string[]>([]);
   readonly summaries = signal<MetricSummary[]>([]);
   readonly anomalies = signal<Anomaly[]>([]);
@@ -103,6 +109,37 @@ export class DashboardComponent {
 
   onRefresh(): void {
     this.reloadAll();
+  }
+
+  onExportCsv(): void {
+    if (this.exportBusy()) {
+      return;
+    }
+
+    this.exportBusy.set(true);
+    const d = this.dateParams();
+    this.reports
+      .downloadDashboardCsv(d.startDate, d.endDate)
+      .pipe(finalize(() => this.exportBusy.set(false)), take(1))
+      .subscribe({
+        next: (blob) => {
+          this.triggerFileDownload(blob, 'dashboard-metrics.csv');
+          this.snackBar.open('Report downloaded', 'Dismiss', { duration: 3500 });
+        },
+        error: () => {
+          this.snackBar.open('Export failed', 'Dismiss', { duration: 5000 });
+        },
+      });
+  }
+
+  private triggerFileDownload(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.rel = 'noopener';
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   onKpiSelect(metricName: string): void {

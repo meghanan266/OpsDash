@@ -5,7 +5,7 @@ namespace OpsDash.Application.Interfaces;
 
 public interface IHealthScoreService
 {
-    Task<ApiResponse<HealthScoreDto>> GetLatestAsync();
+    Task<CachedApiResponse<HealthScoreDto>> GetLatestAsync();
 
     Task<ApiResponse<List<HealthScoreDto>>> GetHistoryAsync(int take = 30);
 }

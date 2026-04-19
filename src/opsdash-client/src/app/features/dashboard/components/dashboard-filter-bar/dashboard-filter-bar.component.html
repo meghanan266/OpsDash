@@ -19,6 +19,11 @@
     </mat-select>
   </mat-form-field>
 
+  <button mat-stroked-button type="button" class="export" (click)="emitExportCsv()">
+    <mat-icon>download</mat-icon>
+    Export CSV
+  </button>
+
   <button mat-flat-button color="primary" type="button" class="refresh" (click)="emitRefresh()">
     <mat-icon>refresh</mat-icon>
     Refresh

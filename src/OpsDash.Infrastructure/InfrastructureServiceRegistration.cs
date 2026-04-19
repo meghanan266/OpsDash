@@ -13,8 +13,23 @@ public static class InfrastructureServiceRegistration
         this IServiceCollection services,
         IConfiguration configuration)
     {
-        services.AddDbContext<AppDbContext>(options =>
-            options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+        // Local dev: in-memory distributed cache. For production, prefer:
+        // services.AddStackExchangeRedisCache(o => o.Configuration = configuration["Redis:ConnectionString"]);
+        services.AddDistributedMemoryCache();
+
+        services.AddHttpContextAccessor();
+        services.AddScoped<ICurrentUserService, HttpContextCurrentUserService>();
+        services.AddScoped<AuditInterceptor>();
+        services.AddScoped<ICacheService, CacheService>();
+
+        // IRealtimeNotificationService is registered in OpsDash.API (Program.cs) with SignalR (host owns IHubContext).
+
+        services.AddDbContext<AppDbContext>(
+            (sp, options) =>
+            {
+                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection"));
+                options.AddInterceptors(sp.GetRequiredService<AuditInterceptor>());
+            });
 
         services.AddScoped<CurrentTenantService>();
         services.AddScoped<ITenantContextService>(sp => sp.GetRequiredService<CurrentTenantService>());
@@ -22,8 +37,6 @@ public static class InfrastructureServiceRegistration
 
         services.AddScoped<IAppDbContext>(sp => sp.GetRequiredService<AppDbContext>());
         services.AddScoped<ITokenService, TokenService>();
-
-        // IRealtimeNotificationService is registered in OpsDash.API (Program.cs) with SignalR (host owns IHubContext).
 
         return services;
     }

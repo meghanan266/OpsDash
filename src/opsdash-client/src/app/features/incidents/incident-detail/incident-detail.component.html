@@ -17,6 +17,10 @@
         </p>
       </div>
       <div class="actions">
+        <button mat-stroked-button type="button" (click)="exportReport()" [disabled]="exportBusy()">
+          <mat-icon>download</mat-icon>
+          Export report
+        </button>
         @if (canAcknowledge()) {
           <button mat-stroked-button color="primary" type="button" (click)="acknowledge()">
             <mat-icon>verified</mat-icon>

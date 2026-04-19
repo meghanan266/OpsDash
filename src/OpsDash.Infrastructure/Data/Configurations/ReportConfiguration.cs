@@ -14,6 +14,9 @@ public class ReportConfiguration : IEntityTypeConfiguration<Report>
         entity.Property(e => e.BlobUrl).HasMaxLength(1000);
         entity.Property(e => e.Status).IsRequired().HasMaxLength(20).HasDefaultValue("Pending");
         entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+        entity.Property(e => e.FilterStartDate);
+        entity.Property(e => e.FilterEndDate);
+        entity.Property(e => e.SourceIncidentId);
 
         entity.HasOne(e => e.Tenant)
             .WithMany()

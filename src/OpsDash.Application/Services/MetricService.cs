@@ -1,5 +1,5 @@
+using System.Globalization;
 using AutoMapper;
-using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using OpsDash.Application.DTOs.Common;
@@ -17,6 +17,8 @@ public class MetricService : IMetricService
     private readonly IAnomalyDetectionService _anomalyDetectionService;
     private readonly IPredictiveAlertService _predictiveAlertService;
     private readonly IHealthScoreComputeService _healthScoreComputeService;
+    private readonly ICacheService _cache;
+    private readonly IDashboardSummaryQuery _dashboardSummaryQuery;
     private readonly ILogger<MetricService> _logger;
 
     public MetricService(
@@ -26,6 +28,8 @@ public class MetricService : IMetricService
         IAnomalyDetectionService anomalyDetectionService,
         IPredictiveAlertService predictiveAlertService,
         IHealthScoreComputeService healthScoreComputeService,
+        ICacheService cache,
+        IDashboardSummaryQuery dashboardSummaryQuery,
         ILogger<MetricService> logger)
     {
         _db = db;
@@ -34,6 +38,8 @@ public class MetricService : IMetricService
         _anomalyDetectionService = anomalyDetectionService;
         _predictiveAlertService = predictiveAlertService;
         _healthScoreComputeService = healthScoreComputeService;
+        _cache = cache;
+        _dashboardSummaryQuery = dashboardSummaryQuery;
         _logger = logger;
     }
 
@@ -96,6 +102,7 @@ public class MetricService : IMetricService
 
         var dto = _mapper.Map<MetricDto>(metric);
         dto.AnomalyDetected = anomalyDetected;
+        await InvalidateTenantMetricCachesAsync(metric.MetricName).ConfigureAwait(false);
         return ApiResponse<MetricDto>.Ok(dto);
     }
 
@@ -168,6 +175,11 @@ public class MetricService : IMetricService
             _logger.LogError(ex, "Health score recomputation failed after batch ingest for tenant {TenantId}", tenantId);
         }
 
+        foreach (var name in metrics.Select(m => m.MetricName).Distinct(StringComparer.Ordinal))
+        {
+            await InvalidateTenantMetricCachesAsync(name).ConfigureAwait(false);
+        }
+
         return ApiResponse<List<MetricDto>>.Ok(dtos);
     }
 
@@ -219,37 +231,70 @@ public class MetricService : IMetricService
         return ApiResponse<PagedResult<MetricDto>>.Ok(paged);
     }
 
-    public async Task<ApiResponse<List<MetricSummaryDto>>> GetMetricsSummaryAsync(DateTime? startDate, DateTime? endDate)
+    public async Task<CachedApiResponse<List<MetricSummaryDto>>> GetMetricsSummaryAsync(DateTime? startDate, DateTime? endDate)
     {
-        const string sql = "EXEC [dbo].[sp_GetDashboardSummary] @TenantId, @StartDate, @EndDate";
+        var tenantId = _tenantContext.TenantId;
+        var key = SummaryCacheKey(tenantId, startDate, endDate);
+        var cached = await _cache.GetAsync<List<MetricSummaryDto>>(key).ConfigureAwait(false);
+        if (cached.IsHit && cached.Value is not null)
+        {
+            return new CachedApiResponse<List<MetricSummaryDto>>
+            {
+                Response = ApiResponse<List<MetricSummaryDto>>.Ok(cached.Value),
+                FromCache = true,
+            };
+        }
 
-        var summaries = await _db.Database
-            .SqlQueryRaw<MetricSummaryDto>(
-                sql,
-                new SqlParameter("@TenantId", _tenantContext.TenantId),
-                new SqlParameter("@StartDate", startDate.HasValue ? startDate.Value : DBNull.Value),
-                new SqlParameter("@EndDate", endDate.HasValue ? endDate.Value : DBNull.Value))
-            .ToListAsync();
+        var summaries = await _dashboardSummaryQuery
+            .GetDashboardSummaryAsync(tenantId, startDate, endDate)
+            .ConfigureAwait(false);
 
-        return ApiResponse<List<MetricSummaryDto>>.Ok(summaries);
+        await _cache
+            .SetAsync(key, summaries, TimeSpan.FromMinutes(2))
+            .ConfigureAwait(false);
+
+        return new CachedApiResponse<List<MetricSummaryDto>>
+        {
+            Response = ApiResponse<List<MetricSummaryDto>>.Ok(summaries),
+            FromCache = false,
+        };
     }
 
     public async Task<ApiResponse<List<string>>> GetCategoriesAsync()
     {
+        var tenantId = _tenantContext.TenantId;
+        var key = CategoriesCacheKey(tenantId);
+        var cached = await _cache.GetAsync<List<string>>(key).ConfigureAwait(false);
+        if (cached.IsHit && cached.Value is not null)
+        {
+            return ApiResponse<List<string>>.Ok(cached.Value);
+        }
+
         var categories = await _db.Metrics
             .Select(m => m.Category)
             .Distinct()
             .OrderBy(c => c)
-            .ToListAsync();
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        await _cache.SetAsync(key, categories, TimeSpan.FromMinutes(10)).ConfigureAwait(false);
 
         return ApiResponse<List<string>>.Ok(categories);
     }
 
     public async Task<ApiResponse<List<MetricHistoryPointDto>>> GetMetricHistoryAsync(MetricHistoryRequest request)
     {
+        var tenantId = _tenantContext.TenantId;
         var granularity = string.IsNullOrWhiteSpace(request.Granularity)
             ? "raw"
             : request.Granularity.Trim().ToLowerInvariant();
+
+        var historyKey = HistoryCacheKey(tenantId, request.MetricName, request.StartDate, request.EndDate, granularity);
+        var cached = await _cache.GetAsync<List<MetricHistoryPointDto>>(historyKey).ConfigureAwait(false);
+        if (cached.IsHit && cached.Value is not null)
+        {
+            return ApiResponse<List<MetricHistoryPointDto>>.Ok(cached.Value);
+        }
 
         IQueryable<Metric> query = _db.Metrics.Where(m => m.MetricName == request.MetricName);
 
@@ -306,8 +351,46 @@ public class MetricService : IMetricService
                 .ToListAsync(),
         };
 
+        await _cache.SetAsync(historyKey, points, TimeSpan.FromMinutes(2)).ConfigureAwait(false);
+
         return ApiResponse<List<MetricHistoryPointDto>>.Ok(points);
     }
+
+    private async Task InvalidateTenantMetricCachesAsync(string metricName)
+    {
+        var tenantId = _tenantContext.TenantId;
+        try
+        {
+            await _cache.RemoveAsync(CategoriesCacheKey(tenantId)).ConfigureAwait(false);
+            await _cache.RemoveAsync(HealthLatestCacheKey(tenantId)).ConfigureAwait(false);
+            await _cache.RemoveByPrefixAsync($"dashboard:summary:{tenantId}:").ConfigureAwait(false);
+            await _cache.RemoveByPrefixAsync($"history:{tenantId}:{metricName}:").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Cache invalidation failed for tenant {TenantId}", tenantId);
+        }
+    }
+
+    private static string SummaryCacheKey(int tenantId, DateTime? start, DateTime? end) =>
+        $"dashboard:summary:{tenantId}:{FormatDateKey(start)}:{FormatDateKey(end)}";
+
+    private static string CategoriesCacheKey(int tenantId) => $"categories:{tenantId}";
+
+    private static string HistoryCacheKey(
+        int tenantId,
+        string metricName,
+        DateTime? start,
+        DateTime? end,
+        string granularity) =>
+        $"history:{tenantId}:{metricName}:{FormatDateKey(start)}:{FormatDateKey(end)}:{granularity}";
+
+    private static string HealthLatestCacheKey(int tenantId) => $"health:{tenantId}:latest";
+
+    private static string FormatDateKey(DateTime? value) =>
+        value.HasValue
+            ? value.Value.ToUniversalTime().ToString("o", CultureInfo.InvariantCulture)
+            : "null";
 
     private static IQueryable<Metric> ApplySorting(IQueryable<Metric> query, PagedRequest paging)
     {

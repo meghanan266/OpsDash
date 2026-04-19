@@ -85,8 +85,9 @@ public class MetricsController : ControllerBase
         [FromQuery] DateTime? startDate,
         [FromQuery] DateTime? endDate)
     {
-        var result = await _metricService.GetMetricsSummaryAsync(startDate, endDate);
-        return Ok(result);
+        var wrapped = await _metricService.GetMetricsSummaryAsync(startDate, endDate);
+        Response.Headers.Append("X-Cache", wrapped.FromCache ? "HIT" : "MISS");
+        return Ok(wrapped.Response);
     }
 
     /// <summary>

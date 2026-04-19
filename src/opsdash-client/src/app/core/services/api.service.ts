@@ -26,6 +26,27 @@ export class ApiService {
     return this.http.post<ApiResponse<T>>(this.join(path), body);
   }
 
+  postWithQuery<T>(
+    path: string,
+    body: unknown,
+    params?: Record<string, string | number | boolean | null | undefined>,
+  ): Observable<ApiResponse<T>> {
+    let httpParams = new HttpParams();
+    if (params) {
+      for (const [key, value] of Object.entries(params)) {
+        if (value !== undefined && value !== null) {
+          httpParams = httpParams.set(key, String(value));
+        }
+      }
+    }
+
+    return this.http.post<ApiResponse<T>>(this.join(path), body ?? {}, { params: httpParams });
+  }
+
+  getBlob(path: string): Observable<Blob> {
+    return this.http.get(this.join(path), { responseType: 'blob' });
+  }
+
   put<T>(path: string, body: unknown): Observable<ApiResponse<T>> {
     return this.http.put<ApiResponse<T>>(this.join(path), body);
   }

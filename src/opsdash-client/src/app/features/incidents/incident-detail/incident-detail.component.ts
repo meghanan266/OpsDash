@@ -11,11 +11,12 @@ import { MatSelectModule } from '@angular/material/select';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatTableModule } from '@angular/material/table';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { catchError, finalize, switchMap, take } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { catchError, finalize, switchMap, take } from 'rxjs/operators';
 import type { IncidentDetail } from '../models/incident.models';
 import { IncidentsService } from '../incidents.service';
 import { DashboardRealtimeBridge } from '../../../core/services/dashboard-realtime.bridge';
+import { ReportsService } from '../../../core/services/reports.service';
 import { formatTimeAgo } from '../../dashboard/utils/time-ago';
 
 @Component({
@@ -41,11 +42,13 @@ import { formatTimeAgo } from '../../dashboard/utils/time-ago';
 export class IncidentDetailComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly incidentsApi = inject(IncidentsService);
+  private readonly reports = inject(ReportsService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly destroyRef = inject(DestroyRef);
   private readonly realtimeBridge = inject(DashboardRealtimeBridge);
 
   readonly loading = signal(true);
+  readonly exportBusy = signal(false);
   readonly incident = signal<IncidentDetail | null>(null);
   readonly statusEdit = signal('');
   readonly correlationColumns = ['metricName', 'value', 'zScore', 'offset'];
@@ -157,6 +160,33 @@ export class IncidentDetailComponent {
         } else {
           this.snackBar.open(res?.message ?? 'Update failed', 'Dismiss', { duration: 5000 });
         }
+      });
+  }
+
+  exportReport(): void {
+    const i = this.incident();
+    if (!i || this.exportBusy()) {
+      return;
+    }
+
+    this.exportBusy.set(true);
+    this.reports
+      .downloadIncidentCsv(i.id)
+      .pipe(finalize(() => this.exportBusy.set(false)), take(1))
+      .subscribe({
+        next: (blob) => {
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `incident-${i.id}-report.csv`;
+          a.rel = 'noopener';
+          a.click();
+          URL.revokeObjectURL(url);
+          this.snackBar.open('Report downloaded', 'Dismiss', { duration: 3500 });
+        },
+        error: () => {
+          this.snackBar.open('Export failed', 'Dismiss', { duration: 5000 });
+        },
       });
   }
 

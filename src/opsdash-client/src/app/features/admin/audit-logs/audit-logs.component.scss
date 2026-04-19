@@ -1,0 +1,79 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 18px 40px;
+}
+
+h1 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.lede {
+  margin: 0 0 20px;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 68%, transparent);
+  font-size: 0.95rem;
+}
+
+.filters {
+  margin-bottom: 16px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 16px;
+  align-items: center;
+}
+
+.ff {
+  flex: 1 1 160px;
+  min-width: 140px;
+}
+
+.ff.narrow {
+  flex: 0 1 120px;
+  max-width: 160px;
+}
+
+.apply mat-icon {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+.centered {
+  display: flex;
+  justify-content: center;
+  padding: 40px;
+}
+
+.table-card mat-card-content {
+  padding-top: 8px;
+}
+
+.audit-table {
+  width: 100%;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  background: #e8f5e9;
+  color: #1b5e20;
+}
+
+.badge--del {
+  background: #ffebee;
+  color: #b71c1c;
+}
+
+.uid {
+  margin-left: 4px;
+  font-size: 0.8rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+}

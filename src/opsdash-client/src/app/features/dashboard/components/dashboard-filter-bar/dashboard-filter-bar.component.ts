@@ -21,8 +21,13 @@ export class DashboardFilterBarComponent {
   readonly category = model<string | null>(null);
 
   readonly refresh = output<void>();
+  readonly exportCsv = output<void>();
 
   emitRefresh(): void {
     this.refresh.emit();
+  }
+
+  emitExportCsv(): void {
+    this.exportCsv.emit();
   }
 }

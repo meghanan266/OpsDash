@@ -34,10 +34,13 @@ public sealed class HealthScoreComputeServiceTests
 
         var realtime = new Mock<IRealtimeNotificationService>();
 
+        var cache = new Mock<ICacheService>();
+
         return new HealthScoreComputeService(
             db.Object,
             tenant.Object,
             realtime.Object,
+            cache.Object,
             NullLogger<HealthScoreComputeService>.Instance);
     }
 

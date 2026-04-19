@@ -36,6 +36,13 @@ export const routes: Routes = [
     data: { roles: ['Admin'] },
   },
   {
+    path: 'admin/audit-logs',
+    loadComponent: () =>
+      import('./features/admin/audit-logs/audit-logs.component').then((m) => m.AuditLogsComponent),
+    canActivate: [authGuard, roleGuard],
+    data: { roles: ['Admin'] },
+  },
+  {
     path: 'alerts',
     loadComponent: () => import('./features/alerts/alert-rules/alert-rules.component').then((m) => m.AlertRulesComponent),
     canActivate: [authGuard],

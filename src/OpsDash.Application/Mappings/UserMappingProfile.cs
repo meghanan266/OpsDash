@@ -21,7 +21,8 @@ public class UserMappingProfile : Profile
             .ForMember(d => d.Role, o => o.Ignore())
             .ForMember(d => d.Tenant, o => o.Ignore());
 
-        CreateMap<Metric, MetricDto>();
+        CreateMap<Metric, MetricDto>()
+            .ForMember(d => d.AnomalyDetected, o => o.Ignore());
 
         CreateMap<IngestMetricRequest, Metric>()
             .ForMember(d => d.Id, o => o.Ignore())

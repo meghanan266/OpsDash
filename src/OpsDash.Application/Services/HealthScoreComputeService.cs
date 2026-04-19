@@ -11,17 +11,20 @@ public sealed class HealthScoreComputeService : IHealthScoreComputeService
     private readonly IAppDbContext _db;
     private readonly ITenantContextService _tenantContext;
     private readonly IRealtimeNotificationService _realtimeNotifications;
+    private readonly ICacheService _cache;
     private readonly ILogger<HealthScoreComputeService> _logger;
 
     public HealthScoreComputeService(
         IAppDbContext db,
         ITenantContextService tenantContext,
         IRealtimeNotificationService realtimeNotifications,
+        ICacheService cache,
         ILogger<HealthScoreComputeService> logger)
     {
         _db = db;
         _tenantContext = tenantContext;
         _realtimeNotifications = realtimeNotifications;
+        _cache = cache;
         _logger = logger;
     }
 
@@ -134,6 +137,16 @@ public sealed class HealthScoreComputeService : IHealthScoreComputeService
         await _db.SaveChangesAsync();
 
         _logger.LogInformation("Health score computed for tenant {TenantId}: {Score}", tenantId, roundedOverall);
+
+        try
+        {
+            await _cache.RemoveAsync($"health:{tenantId}:latest").ConfigureAwait(false);
+            await _cache.RemoveByPrefixAsync($"dashboard:summary:{tenantId}:").ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Cache invalidation after health score failed for tenant {TenantId}", tenantId);
+        }
 
         try
         {

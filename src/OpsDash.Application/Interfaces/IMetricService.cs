@@ -11,7 +11,7 @@ public interface IMetricService
 
     Task<ApiResponse<PagedResult<MetricDto>>> GetMetricsAsync(string? category, PagedRequest paging);
 
-    Task<ApiResponse<List<MetricSummaryDto>>> GetMetricsSummaryAsync(DateTime? startDate, DateTime? endDate);
+    Task<CachedApiResponse<List<MetricSummaryDto>>> GetMetricsSummaryAsync(DateTime? startDate, DateTime? endDate);
 
     Task<ApiResponse<List<string>>> GetCategoriesAsync();
 

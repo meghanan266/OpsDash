@@ -30,6 +30,15 @@ public static class MockDbSetHelper
                     backingList.Add(e);
                 }
             });
+        mock.Setup(x => x.AddRangeAsync(It.IsAny<IEnumerable<TEntity>>(), It.IsAny<CancellationToken>()))
+            .Callback<IEnumerable<TEntity>, CancellationToken>((entities, _) =>
+            {
+                foreach (var e in entities)
+                {
+                    backingList.Add(e);
+                }
+            })
+            .Returns(Task.CompletedTask);
         mock.Setup(x => x.Remove(It.IsAny<TEntity>())).Callback<TEntity>(entity => backingList.Remove(entity));
         mock.Setup(x => x.RemoveRange(It.IsAny<IEnumerable<TEntity>>()))
             .Callback<IEnumerable<TEntity>>(entities =>

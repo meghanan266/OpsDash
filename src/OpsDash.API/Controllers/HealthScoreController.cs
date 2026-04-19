@@ -29,8 +29,9 @@ public class HealthScoreController : ControllerBase
     [ProducesResponseType(typeof(ApiResponse<HealthScoreDto>), StatusCodes.Status200OK)]
     public async Task<ActionResult<ApiResponse<HealthScoreDto>>> GetLatest()
     {
-        var result = await _healthScoreService.GetLatestAsync();
-        return Ok(result);
+        var wrapped = await _healthScoreService.GetLatestAsync();
+        Response.Headers.Append("X-Cache", wrapped.FromCache ? "HIT" : "MISS");
+        return Ok(wrapped.Response);
     }
 
     /// <summary>

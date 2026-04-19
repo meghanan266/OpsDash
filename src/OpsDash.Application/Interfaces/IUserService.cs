@@ -16,4 +16,6 @@ public interface IUserService
     Task<ApiResponse<bool>> DeleteUserAsync(int id);
 
     Task<ApiResponse<List<UserDto>>> SearchUsersAsync(string query);
+
+    Task<ApiResponse<List<RoleDto>>> GetRolesAsync();
 }

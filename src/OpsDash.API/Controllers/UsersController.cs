@@ -37,6 +37,17 @@ public class UsersController : ControllerBase
     }
 
     /// <summary>
+    /// Returns roles defined for the current tenant (for user forms and admin UI).
+    /// </summary>
+    [HttpGet("roles")]
+    [ProducesResponseType(typeof(ApiResponse<List<RoleDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<RoleDto>>>> GetRoles()
+    {
+        var result = await _userService.GetRolesAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Returns a single user by identifier.
     /// </summary>
     [HttpGet("{id:int}", Name = nameof(GetUserById))]

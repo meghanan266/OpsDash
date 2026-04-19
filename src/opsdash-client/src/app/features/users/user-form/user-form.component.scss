@@ -1,0 +1,32 @@
+.content {
+  min-width: min(92vw, 480px);
+  padding-top: 8px;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+mat-form-field {
+  width: 100%;
+}
+
+.toggle-row {
+  padding: 4px 0 8px;
+}
+
+.error-banner {
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  background: #ffebee;
+  color: #b71c1c;
+  font-size: 0.9rem;
+}
+
+mat-dialog-actions mat-spinner {
+  display: inline-block;
+  vertical-align: middle;
+}

@@ -192,6 +192,18 @@ public class UserService : IUserService
         return ApiResponse<List<UserDto>>.Ok(_mapper.Map<List<UserDto>>(users));
     }
 
+    public async Task<ApiResponse<List<RoleDto>>> GetRolesAsync()
+    {
+        var roles = await _db.Roles
+            .AsNoTracking()
+            .OrderBy(r => r.Name)
+            .Select(r => new RoleDto { Id = r.Id, Name = r.Name })
+            .ToListAsync()
+            .ConfigureAwait(false);
+
+        return ApiResponse<List<RoleDto>>.Ok(roles);
+    }
+
     private static IQueryable<User> ApplySorting(IQueryable<User> query, PagedRequest paging)
     {
         var sortKey = string.IsNullOrWhiteSpace(paging.SortBy)
@@ -202,7 +214,13 @@ public class UserService : IUserService
 
         return sortKey switch
         {
+            "name" => desc
+                ? query.OrderByDescending(u => u.FirstName).ThenByDescending(u => u.LastName)
+                : query.OrderBy(u => u.FirstName).ThenBy(u => u.LastName),
             "email" => desc ? query.OrderByDescending(u => u.Email) : query.OrderBy(u => u.Email),
+            "role" or "rolename" => desc
+                ? query.OrderByDescending(u => u.Role.Name)
+                : query.OrderBy(u => u.Role.Name),
             "firstname" => desc
                 ? query.OrderByDescending(u => u.FirstName)
                 : query.OrderBy(u => u.FirstName),

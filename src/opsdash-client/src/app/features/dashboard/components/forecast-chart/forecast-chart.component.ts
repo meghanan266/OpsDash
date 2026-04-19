@@ -18,7 +18,7 @@ export class ForecastChartComponent {
 
   readonly chartType = signal<'line'>('line');
   readonly chartData = signal<ChartData<'line'>>({ labels: [], datasets: [] });
-  readonly chartOptions = signal<ChartConfiguration<'line'>['options']>(this.buildOptions(''));
+  readonly chartOptions = signal<ChartConfiguration<'line'>['options']>(this.buildOptions('', []));
 
   constructor() {
     effect(() => {
@@ -26,31 +26,28 @@ export class ForecastChartComponent {
       const history = this.historyData();
       const forecast = this.forecastData() ?? [];
 
-      const histLabels = history.map((h) => this.shortDate(h.recordedAt));
-      const histValues = history.map((h) => Number(h.metricValue));
+      const labels = this.buildSortedLabels(history, forecast);
+      const histByIso = new Map(history.map((h) => [h.recordedAt, Number(h.metricValue)]));
+      const fcByIso = new Map(forecast.map((f) => [f.forecastedFor, Number(f.forecastedValue)]));
+      const lowByIso = new Map(
+        forecast
+          .filter((f) => f.confidenceLower != null)
+          .map((f) => [f.forecastedFor, Number(f.confidenceLower)]),
+      );
+      const highByIso = new Map(
+        forecast
+          .filter((f) => f.confidenceUpper != null)
+          .map((f) => [f.forecastedFor, Number(f.confidenceUpper)]),
+      );
 
-      const fcLabels = forecast.map((f) => this.shortDate(f.recordedAt));
-      const fcValues = forecast.map((f) => Number(f.forecastValue));
-
-      const labels = [...histLabels];
-      for (const lab of fcLabels) {
-        if (!labels.includes(lab)) {
-          labels.push(lab);
-        }
-      }
-
-      const histSeries = labels.map((lab) => {
-        const i = histLabels.indexOf(lab);
-        return i >= 0 ? histValues[i]! : null;
-      });
-
+      const histSeries = labels.map((iso) => (histByIso.has(iso) ? histByIso.get(iso)! : null));
       const datasets: ChartData<'line'>['datasets'] = [
         {
           type: 'line',
           label: 'Actual',
           data: histSeries,
           borderColor: '#1976d2',
-          backgroundColor: 'rgba(25, 118, 210, 0.1)',
+          backgroundColor: 'rgba(25, 118, 210, 0.08)',
           fill: true,
           tension: 0.35,
           spanGaps: false,
@@ -58,10 +55,7 @@ export class ForecastChartComponent {
       ];
 
       if (forecast.length > 0) {
-        const fcSeries = labels.map((lab) => {
-          const i = fcLabels.indexOf(lab);
-          return i >= 0 ? fcValues[i]! : null;
-        });
+        const fcSeries = labels.map((iso) => (fcByIso.has(iso) ? fcByIso.get(iso)! : null));
         datasets.push({
           type: 'line',
           label: 'Forecast',
@@ -74,56 +68,90 @@ export class ForecastChartComponent {
           pointRadius: 3,
         });
 
-        const hasBounds = forecast.some((f) => f.lowerBound != null && f.upperBound != null);
+        const hasBounds = forecast.some((f) => f.confidenceLower != null && f.confidenceUpper != null);
         if (hasBounds) {
-          const low = labels.map((lab) => {
-            const i = fcLabels.indexOf(lab);
-            return i >= 0 && forecast[i]!.lowerBound != null ? Number(forecast[i]!.lowerBound) : null;
-          });
-          const high = labels.map((lab) => {
-            const i = fcLabels.indexOf(lab);
-            return i >= 0 && forecast[i]!.upperBound != null ? Number(forecast[i]!.upperBound) : null;
-          });
+          const low = labels.map((iso) => (lowByIso.has(iso) ? lowByIso.get(iso)! : null));
+          const high = labels.map((iso) => (highByIso.has(iso) ? highByIso.get(iso)! : null));
           datasets.push({
             type: 'line',
-            label: 'Range low',
+            label: 'Confidence lower',
             data: low,
-            borderColor: 'rgba(0, 137, 123, 0.35)',
+            borderColor: 'rgba(0, 137, 123, 0.2)',
+            backgroundColor: 'transparent',
             pointRadius: 0,
             fill: false,
+            tension: 0.2,
+            spanGaps: true,
           });
           datasets.push({
             type: 'line',
-            label: 'Range high',
+            label: 'Confidence band',
             data: high,
             borderColor: 'rgba(0, 137, 123, 0.35)',
             pointRadius: 0,
-            fill: '-2',
-            backgroundColor: 'rgba(0, 137, 123, 0.08)',
+            fill: '-1',
+            backgroundColor: 'rgba(0, 137, 123, 0.12)',
+            tension: 0.2,
+            spanGaps: true,
           });
         }
       }
 
       this.chartData.set({ labels, datasets } as ChartData<'line'>);
-      this.chartOptions.set(this.buildOptions(`${formatMetricTitle(name)} · forecast`));
+      this.chartOptions.set(this.buildOptions(`${formatMetricTitle(name)} · forecast`, labels));
     });
   }
 
-  private shortDate(iso: string): string {
-    const d = new Date(iso);
-    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  private buildSortedLabels(history: MetricHistoryPoint[], forecast: ForecastPoint[]): string[] {
+    const seen = new Set<string>();
+    const times: { t: number; iso: string }[] = [];
+    for (const h of history) {
+      if (!seen.has(h.recordedAt)) {
+        seen.add(h.recordedAt);
+        times.push({ t: new Date(h.recordedAt).getTime(), iso: h.recordedAt });
+      }
+    }
+    for (const f of forecast) {
+      if (!seen.has(f.forecastedFor)) {
+        seen.add(f.forecastedFor);
+        times.push({ t: new Date(f.forecastedFor).getTime(), iso: f.forecastedFor });
+      }
+    }
+    times.sort((a, b) => a.t - b.t);
+    return times.map((x) => x.iso);
   }
 
-  private buildOptions(title: string): ChartConfiguration<'line'>['options'] {
+  private formatAxisLabel(iso: string): string {
+    const d = new Date(iso);
+    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  private buildOptions(title: string, categoryLabels: string[]): ChartConfiguration<'line'>['options'] {
     return {
       responsive: true,
       maintainAspectRatio: false,
       plugins: {
-        legend: { display: true, position: 'top' },
+        legend: {
+          display: true,
+          position: 'top',
+          labels: {
+            filter: (item) => item.text !== 'Confidence lower',
+          },
+        },
         title: title ? { display: true, text: title } : { display: false },
       },
       scales: {
-        x: { ticks: { maxTicksLimit: 14 } },
+        x: {
+          ticks: {
+            maxTicksLimit: 16,
+            maxRotation: 45,
+            callback: (tickValue) => {
+              const idx = typeof tickValue === 'number' ? tickValue : Number(tickValue);
+              const iso = categoryLabels[idx];
+              return iso ? this.formatAxisLabel(iso) : '';
+            },
+          },
+        },
         y: { beginAtZero: false, grid: { color: 'rgba(0,0,0,0.06)' } },
       },
     };

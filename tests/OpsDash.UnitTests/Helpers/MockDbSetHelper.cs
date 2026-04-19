@@ -30,6 +30,15 @@ public static class MockDbSetHelper
                     backingList.Add(e);
                 }
             });
+        mock.Setup(x => x.Remove(It.IsAny<TEntity>())).Callback<TEntity>(entity => backingList.Remove(entity));
+        mock.Setup(x => x.RemoveRange(It.IsAny<IEnumerable<TEntity>>()))
+            .Callback<IEnumerable<TEntity>>(entities =>
+            {
+                foreach (var e in entities.ToList())
+                {
+                    backingList.Remove(e);
+                }
+            });
         return mock;
     }
 }

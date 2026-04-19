@@ -2,7 +2,14 @@ import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../../core/services/api.service';
 import type { ApiResponse, HealthScore, PagedResult } from '../../../core/models/common.model';
-import type { Anomaly, IncidentRow, MetricHistoryPoint, MetricRow, MetricSummary } from '../models/dashboard.models';
+import type {
+  Anomaly,
+  ForecastPoint,
+  IncidentRow,
+  MetricHistoryPoint,
+  MetricRow,
+  MetricSummary,
+} from '../models/dashboard.models';
 
 @Injectable({ providedIn: 'root' })
 export class DashboardService {
@@ -30,6 +37,18 @@ export class DashboardService {
       startDate: startDate ?? undefined,
       endDate: endDate ?? undefined,
       granularity: granularity ?? 'raw',
+    });
+  }
+
+  getMetricForecast(
+    name: string,
+    method?: string,
+    horizon?: number,
+  ): Observable<ApiResponse<ForecastPoint[]>> {
+    const encoded = encodeURIComponent(name);
+    return this.api.get<ForecastPoint[]>(`/metrics/${encoded}/forecast`, {
+      method: method ?? undefined,
+      horizon: horizon ?? undefined,
     });
   }
 

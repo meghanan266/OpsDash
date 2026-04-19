@@ -42,8 +42,23 @@
           <app-metric-chart [metricName]="chartMetricName()" [historyData]="chartHistory()" [anomalies]="chartAnomalies()" />
         </div>
         <h3 class="sub-title">Forecast</h3>
+        <div class="forecast-toolbar">
+          <span class="muted">Method</span>
+          <mat-button-toggle-group
+            [value]="forecastMethod()"
+            (change)="onForecastMethodChange($event)"
+            aria-label="Forecast method"
+          >
+            <mat-button-toggle value="WMA">WMA</mat-button-toggle>
+            <mat-button-toggle value="LinearRegression">Linear regression</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
         <div class="chart-block chart-block--forecast">
-          <app-forecast-chart [metricName]="chartMetricName()" [historyData]="chartHistory()" />
+          <app-forecast-chart
+            [metricName]="chartMetricName()"
+            [historyData]="chartHistory()"
+            [forecastData]="chartForecast()"
+          />
         </div>
       </mat-card-content>
     </mat-card>

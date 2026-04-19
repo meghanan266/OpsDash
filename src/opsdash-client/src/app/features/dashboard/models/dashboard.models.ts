@@ -49,8 +49,10 @@ export interface IncidentRow {
 }
 
 export interface ForecastPoint {
-  recordedAt: string;
-  forecastValue: number;
-  lowerBound?: number;
-  upperBound?: number;
+  metricName: string;
+  forecastedValue: number;
+  forecastMethod: string;
+  forecastedFor: string;
+  confidenceLower: number | null;
+  confidenceUpper: number | null;
 }

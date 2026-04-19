@@ -109,6 +109,18 @@ mat-progress-bar {
   color: color-mix(in srgb, var(--mat-sys-on-surface) 78%, transparent);
 }
 
+.forecast-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  margin: 0 0 8px;
+
+  .muted {
+    margin: 0;
+  }
+}
+
 .incidents-panel {
   .incident-list {
     list-style: none;

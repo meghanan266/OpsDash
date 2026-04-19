@@ -16,10 +16,17 @@ namespace OpsDash.API.Controllers;
 public class MetricsController : ControllerBase
 {
     private readonly IMetricService _metricService;
+    private readonly IForecastService _forecastService;
+    private readonly ITenantContextService _tenantContext;
 
-    public MetricsController(IMetricService metricService)
+    public MetricsController(
+        IMetricService metricService,
+        IForecastService forecastService,
+        ITenantContextService tenantContext)
     {
         _metricService = metricService;
+        _forecastService = forecastService;
+        _tenantContext = tenantContext;
     }
 
     /// <summary>
@@ -114,5 +121,20 @@ public class MetricsController : ControllerBase
 
         var result = await _metricService.GetMetricHistoryAsync(request);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Generates a short-term forecast for the metric (on demand) and persists it for the tenant.
+    /// </summary>
+    [HttpGet("{name}/forecast")]
+    [ProducesResponseType(typeof(ApiResponse<List<ForecastPointDto>>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<List<ForecastPointDto>>>> GetForecast(
+        [FromRoute] string name,
+        [FromQuery] string? method,
+        [FromQuery] int? horizon)
+    {
+        var points = await _forecastService.GenerateForecastAsync(name, method, horizon);
+        await _forecastService.StoreForecastAsync(_tenantContext.TenantId, name, points);
+        return Ok(ApiResponse<List<ForecastPointDto>>.Ok(points));
     }
 }

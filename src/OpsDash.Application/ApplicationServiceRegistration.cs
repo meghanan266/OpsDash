@@ -14,6 +14,7 @@ public static class ApplicationServiceRegistration
     public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.Configure<AnomalyDetectionSettings>(configuration.GetSection("AnomalyDetection"));
+        services.Configure<ForecastSettings>(configuration.GetSection("Forecasting"));
 
         services.AddAutoMapper(typeof(UserMappingProfile).Assembly);
         services.AddValidatorsFromAssembly(Assembly.GetExecutingAssembly());
@@ -26,6 +27,7 @@ public static class ApplicationServiceRegistration
         services.AddScoped<IIncidentService, IncidentService>();
         services.AddScoped<ICorrelationService, CorrelationService>();
         services.AddScoped<IAnomalyDetectionService, AnomalyDetectionService>();
+        services.AddScoped<IForecastService, ForecastService>();
 
         return services;
     }

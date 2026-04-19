@@ -1,6 +1,7 @@
 import { Component, computed, inject, model, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { MatCardModule } from '@angular/material/card';
+import { MatButtonToggleChange, MatButtonToggleModule } from '@angular/material/button-toggle';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
@@ -15,7 +16,7 @@ import { ForecastChartComponent } from './components/forecast-chart/forecast-cha
 import { HealthScoreComponent } from './components/health-score/health-score.component';
 import { KpiSummaryComponent } from './components/kpi-summary/kpi-summary.component';
 import { MetricChartComponent } from './components/metric-chart/metric-chart.component';
-import type { Anomaly, IncidentRow, MetricHistoryPoint, MetricRow, MetricSummary } from './models/dashboard.models';
+import type { Anomaly, ForecastPoint, IncidentRow, MetricHistoryPoint, MetricRow, MetricSummary } from './models/dashboard.models';
 import { DashboardService } from './services/dashboard.service';
 
 @Component({
@@ -23,6 +24,7 @@ import { DashboardService } from './services/dashboard.service';
   standalone: true,
   imports: [
     MatCardModule,
+    MatButtonToggleModule,
     MatProgressBarModule,
     RouterLink,
     DashboardFilterBarComponent,
@@ -52,6 +54,8 @@ export class DashboardComponent {
   readonly incidents = signal<IncidentRow[]>([]);
   readonly chartMetricName = signal<string>('');
   readonly chartHistory = signal<MetricHistoryPoint[]>([]);
+  readonly chartForecast = signal<ForecastPoint[]>([]);
+  readonly forecastMethod = signal<'WMA' | 'LinearRegression'>('WMA');
   readonly tableRows = signal<MetricRow[]>([]);
   readonly tableTotal = signal(0);
   readonly tablePageIndex = signal(0);
@@ -91,6 +95,14 @@ export class DashboardComponent {
   onKpiSelect(metricName: string): void {
     this.chartMetricName.set(metricName);
     this.loadChartHistory();
+  }
+
+  onForecastMethodChange(e: MatButtonToggleChange): void {
+    const v = e.value as 'WMA' | 'LinearRegression';
+    if (v === 'WMA' || v === 'LinearRegression') {
+      this.forecastMethod.set(v);
+      this.loadChartHistory();
+    }
   }
 
   onTablePage(e: PageEvent): void {
@@ -170,6 +182,11 @@ export class DashboardComponent {
             chart: name
               ? this.dashboard.getMetricHistory(name, d.startDate, d.endDate, 'raw').pipe(catchError(() => of(null)))
               : of(null),
+            forecast: name
+              ? this.dashboard
+                  .getMetricForecast(name, this.forecastMethod(), undefined)
+                  .pipe(catchError(() => of(null)))
+              : of(null),
             table: this.dashboard
               .getMetrics(
                 cat,
@@ -188,6 +205,12 @@ export class DashboardComponent {
           this.chartHistory.set(r2.chart.data);
         } else {
           this.chartHistory.set([]);
+        }
+
+        if (r2.forecast?.success && r2.forecast.data) {
+          this.chartForecast.set(r2.forecast.data);
+        } else {
+          this.chartForecast.set([]);
         }
 
         if (r2.table?.success && r2.table.data) {
@@ -221,6 +244,11 @@ export class DashboardComponent {
                   catchError(() => of(null)),
                 )
               : of(null),
+            forecast: this.chartMetricName()
+              ? this.dashboard
+                  .getMetricForecast(this.chartMetricName(), this.forecastMethod(), undefined)
+                  .pipe(catchError(() => of(null)))
+              : of(null),
             table: this.loadTableRequest(),
           });
         }),
@@ -231,6 +259,12 @@ export class DashboardComponent {
           this.chartHistory.set(r2.chart.data);
         } else {
           this.chartHistory.set([]);
+        }
+
+        if (r2.forecast?.success && r2.forecast.data) {
+          this.chartForecast.set(r2.forecast.data);
+        } else {
+          this.chartForecast.set([]);
         }
 
         this.applyTableResult(r2.table);
@@ -255,6 +289,11 @@ export class DashboardComponent {
                   catchError(() => of(null)),
                 )
               : of(null),
+            forecast: this.chartMetricName()
+              ? this.dashboard
+                  .getMetricForecast(this.chartMetricName(), this.forecastMethod(), undefined)
+                  .pipe(catchError(() => of(null)))
+              : of(null),
             table: this.loadTableRequest(),
           });
         }),
@@ -265,6 +304,12 @@ export class DashboardComponent {
           this.chartHistory.set(r2.chart.data);
         } else {
           this.chartHistory.set([]);
+        }
+
+        if (r2.forecast?.success && r2.forecast.data) {
+          this.chartForecast.set(r2.forecast.data);
+        } else {
+          this.chartForecast.set([]);
         }
 
         this.applyTableResult(r2.table);
@@ -319,12 +364,19 @@ export class DashboardComponent {
     const name = this.chartMetricName();
     if (!name) {
       this.chartHistory.set([]);
+      this.chartForecast.set([]);
       return;
     }
 
     const d = this.dateParams();
-    this.dashboard.getMetricHistory(name, d.startDate, d.endDate, 'raw').subscribe((res) => {
-      this.chartHistory.set(res.success && res.data ? res.data : []);
+    forkJoin({
+      chart: this.dashboard.getMetricHistory(name, d.startDate, d.endDate, 'raw').pipe(catchError(() => of(null))),
+      forecast: this.dashboard
+        .getMetricForecast(name, this.forecastMethod(), undefined)
+        .pipe(catchError(() => of(null))),
+    }).subscribe((r) => {
+      this.chartHistory.set(r.chart?.success && r.chart.data ? r.chart.data : []);
+      this.chartForecast.set(r.forecast?.success && r.forecast.data ? r.forecast.data : []);
     });
   }
 

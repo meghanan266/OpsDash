@@ -20,5 +20,7 @@ public sealed class AnomalyDetectionResult
 
     public long? AnomalyScoreId { get; set; }
 
+    public int? IncidentId { get; set; }
+
     public List<CorrelationResult> Correlations { get; set; } = [];
 }

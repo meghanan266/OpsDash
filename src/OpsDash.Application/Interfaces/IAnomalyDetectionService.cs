@@ -10,4 +10,6 @@ public interface IAnomalyDetectionService
     Task UpdateBaselineAsync(int tenantId, string metricName);
 
     Task<MetricBaseline?> GetBaselineAsync(int tenantId, string metricName);
+
+    Task CheckAndResolveAnomaliesAsync(int tenantId, string metricName);
 }

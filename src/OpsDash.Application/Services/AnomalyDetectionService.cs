@@ -16,6 +16,7 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
     private readonly IAppDbContext _db;
     private readonly ITenantContextService _tenantContext;
     private readonly ICorrelationService _correlationService;
+    private readonly IIncidentAutoGroupService _incidentAutoGroupService;
     private readonly ILogger<AnomalyDetectionService> _logger;
     private readonly AnomalyDetectionSettings _settings;
 
@@ -23,12 +24,14 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
         IAppDbContext db,
         ITenantContextService tenantContext,
         ICorrelationService correlationService,
+        IIncidentAutoGroupService incidentAutoGroupService,
         ILogger<AnomalyDetectionService> logger,
         IOptions<AnomalyDetectionSettings> options)
     {
         _db = db;
         _tenantContext = tenantContext;
         _correlationService = correlationService;
+        _incidentAutoGroupService = incidentAutoGroupService;
         _logger = logger;
         _settings = options.Value;
     }
@@ -45,6 +48,9 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
             throw new InvalidOperationException($"Metric {metricId} was not found for the current tenant.");
         }
 
+        AnomalyDetectionResult result;
+        var shouldResolveAfterBaseline = false;
+
         try
         {
             var totalCount = await _db.Metrics.AsNoTracking()
@@ -52,7 +58,8 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
 
             if (totalCount < MinDataPointsForAnalysis)
             {
-                return SkippedAnalysisResult(metric, "Insufficient total data points for analysis.");
+                result = SkippedAnalysisResult(metric, "Insufficient total data points for analysis.");
+                return result;
             }
 
             var persistedBaseline = await GetBaselineAsync(tenantId, metric.MetricName);
@@ -76,7 +83,8 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
 
                 if (priorPoints.Count < MinDataPointsForAnalysis)
                 {
-                    return SkippedAnalysisResult(metric, "Insufficient prior data points to compute a baseline.");
+                    result = SkippedAnalysisResult(metric, "Insufficient prior data points to compute a baseline.");
+                    return result;
                 }
 
                 baselineMean = priorPoints.Average();
@@ -85,7 +93,8 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
 
             if (baselineStdDev < MinStdDev)
             {
-                return SkippedAnalysisResult(metric, "Baseline standard deviation is too small for a stable Z-score.");
+                result = SkippedAnalysisResult(metric, "Baseline standard deviation is too small for a stable Z-score.");
+                return result;
             }
 
             var zScore = (metric.MetricValue - baselineMean) / baselineStdDev;
@@ -140,7 +149,17 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
 
                 var correlations = await _correlationService.FindCorrelationsAsync(score.Id);
 
-                return new AnomalyDetectionResult
+                int? incidentId = null;
+                try
+                {
+                    incidentId = await _incidentAutoGroupService.ProcessAnomalyForIncidentAsync(score.Id);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Incident grouping failed for anomaly score {AnomalyScoreId}", score.Id);
+                }
+
+                result = new AnomalyDetectionResult
                 {
                     IsAnomaly = true,
                     ZScore = zScore,
@@ -152,10 +171,14 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
                     BaselineStdDev = baselineStdDev,
                     AnomalyScoreId = score.Id,
                     Correlations = correlations,
+                    IncidentId = incidentId,
                 };
+
+                return result;
             }
 
-            return new AnomalyDetectionResult
+            shouldResolveAfterBaseline = true;
+            result = new AnomalyDetectionResult
             {
                 IsAnomaly = false,
                 ZScore = zScore,
@@ -168,11 +191,100 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
                 AnomalyScoreId = null,
                 Correlations = [],
             };
+
+            return result;
         }
         finally
         {
             await UpdateBaselineAsync(tenantId, metric.MetricName);
+
+            if (shouldResolveAfterBaseline)
+            {
+                try
+                {
+                    await CheckAndResolveAnomaliesAsync(tenantId, metric.MetricName);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Anomaly resolution check failed for metric {MetricName}", metric.MetricName);
+                }
+            }
+
+            try
+            {
+                await _incidentAutoGroupService.CheckAndAutoResolveIncidentsAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Incident auto-resolution check failed for tenant {TenantId}", tenantId);
+            }
         }
+    }
+
+    public async Task CheckAndResolveAnomaliesAsync(int tenantId, string metricName)
+    {
+        EnsureTenant(tenantId);
+
+        var baseline = await GetBaselineAsync(tenantId, metricName);
+        if (baseline is null || baseline.StandardDeviation < MinStdDev)
+        {
+            return;
+        }
+
+        var latest = await _db.Metrics.AsNoTracking()
+            .Where(m => m.TenantId == tenantId && m.MetricName == metricName)
+            .OrderByDescending(m => m.RecordedAt)
+            .FirstOrDefaultAsync();
+
+        if (latest is null)
+        {
+            return;
+        }
+
+        var zScore = (latest.MetricValue - baseline.Mean) / baseline.StandardDeviation;
+        if (Math.Abs((double)zScore) >= _settings.ZScoreThreshold)
+        {
+            return;
+        }
+
+        var active = await _db.AnomalyScores
+            .Where(a => a.TenantId == tenantId && a.MetricName == metricName && a.IsActive)
+            .ToListAsync();
+
+        if (active.Count == 0)
+        {
+            return;
+        }
+
+        var now = DateTime.UtcNow;
+        var incidentIds = new HashSet<int>();
+
+        foreach (var a in active)
+        {
+            a.IsActive = false;
+            a.ResolvedAt = now;
+            if (a.IncidentId.HasValue)
+            {
+                incidentIds.Add(a.IncidentId.Value);
+            }
+        }
+
+        foreach (var incidentId in incidentIds)
+        {
+            _db.IncidentEvents.Add(new IncidentEvent
+            {
+                IncidentId = incidentId,
+                TenantId = tenantId,
+                EventType = "MetricNormalized",
+                Description = $"{metricName} has returned to normal range",
+                MetricName = metricName,
+                CreatedAt = now,
+            });
+        }
+
+        await _db.SaveChangesAsync();
+
+        _logger.LogInformation("Anomaly resolved: {MetricName} returned to normal", metricName);
     }
 
     public async Task UpdateBaselineAsync(int tenantId, string metricName)
@@ -255,6 +367,7 @@ public sealed class AnomalyDetectionService : IAnomalyDetectionService
             BaselineMean = 0,
             BaselineStdDev = 0,
             AnomalyScoreId = null,
+            Correlations = [],
         };
     }
 

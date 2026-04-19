@@ -15,6 +15,8 @@ public class MetricService : IMetricService
     private readonly IMapper _mapper;
     private readonly ITenantContextService _tenantContext;
     private readonly IAnomalyDetectionService _anomalyDetectionService;
+    private readonly IPredictiveAlertService _predictiveAlertService;
+    private readonly IHealthScoreComputeService _healthScoreComputeService;
     private readonly ILogger<MetricService> _logger;
 
     public MetricService(
@@ -22,12 +24,16 @@ public class MetricService : IMetricService
         IMapper mapper,
         ITenantContextService tenantContext,
         IAnomalyDetectionService anomalyDetectionService,
+        IPredictiveAlertService predictiveAlertService,
+        IHealthScoreComputeService healthScoreComputeService,
         ILogger<MetricService> logger)
     {
         _db = db;
         _mapper = mapper;
         _tenantContext = tenantContext;
         _anomalyDetectionService = anomalyDetectionService;
+        _predictiveAlertService = predictiveAlertService;
+        _healthScoreComputeService = healthScoreComputeService;
         _logger = logger;
     }
 
@@ -41,19 +47,55 @@ public class MetricService : IMetricService
         _db.Metrics.Add(metric);
         await _db.SaveChangesAsync();
 
-        var anomalyResult = await _anomalyDetectionService.AnalyzeMetricAsync(metric.Id);
-        if (anomalyResult.IsAnomaly)
+        var anomalyDetected = false;
+        try
         {
-            _logger.LogInformation(
-                "Ingest anomaly: {MetricName} value {Value}, severity {Severity}, Z-score {ZScore}",
-                anomalyResult.MetricName,
-                anomalyResult.MetricValue,
-                anomalyResult.Severity,
-                anomalyResult.ZScore);
+            var anomalyResult = await _anomalyDetectionService.AnalyzeMetricAsync(metric.Id);
+            anomalyDetected = anomalyResult.IsAnomaly;
+            if (anomalyResult.IsAnomaly)
+            {
+                _logger.LogInformation(
+                    "Ingest anomaly: {MetricName} value {Value}, severity {Severity}, Z-score {ZScore}",
+                    anomalyResult.MetricName,
+                    anomalyResult.MetricValue,
+                    anomalyResult.Severity,
+                    anomalyResult.ZScore);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Anomaly detection failed during ingest for metric {MetricId}", metric.Id);
+        }
+
+        try
+        {
+            await _predictiveAlertService.EvaluateAlertsAsync(metric.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Current-mode alert evaluation failed for metric {MetricId}", metric.Id);
+        }
+
+        try
+        {
+            await _predictiveAlertService.EvaluatePredictiveAlertsAsync(metric.MetricName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Predictive alert evaluation failed for metric {MetricName}", metric.MetricName);
+        }
+
+        try
+        {
+            await TryRecomputeHealthScoreThrottledAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Health score recomputation failed after ingest for tenant {TenantId}", _tenantContext.TenantId);
         }
 
         var dto = _mapper.Map<MetricDto>(metric);
-        dto.AnomalyDetected = anomalyResult.IsAnomaly;
+        dto.AnomalyDetected = anomalyDetected;
         return ApiResponse<MetricDto>.Ok(dto);
     }
 
@@ -77,21 +119,72 @@ public class MetricService : IMetricService
         var dtos = _mapper.Map<List<MetricDto>>(metrics);
         for (var i = 0; i < metrics.Count; i++)
         {
-            var result = await _anomalyDetectionService.AnalyzeMetricAsync(metrics[i].Id);
-            if (result.IsAnomaly)
+            try
             {
-                _logger.LogInformation(
-                    "Batch ingest anomaly: {MetricName} value {Value}, severity {Severity}, Z-score {ZScore}",
-                    result.MetricName,
-                    result.MetricValue,
-                    result.Severity,
-                    result.ZScore);
+                var result = await _anomalyDetectionService.AnalyzeMetricAsync(metrics[i].Id);
+                if (result.IsAnomaly)
+                {
+                    _logger.LogInformation(
+                        "Batch ingest anomaly: {MetricName} value {Value}, severity {Severity}, Z-score {ZScore}",
+                        result.MetricName,
+                        result.MetricValue,
+                        result.Severity,
+                        result.ZScore);
+                }
+
+                dtos[i].AnomalyDetected = result.IsAnomaly;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Anomaly detection failed during batch ingest for metric {MetricId}", metrics[i].Id);
+                dtos[i].AnomalyDetected = false;
             }
 
-            dtos[i].AnomalyDetected = result.IsAnomaly;
+            try
+            {
+                await _predictiveAlertService.EvaluateAlertsAsync(metrics[i].Id);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Current-mode alert evaluation failed for metric {MetricId}", metrics[i].Id);
+            }
+
+            try
+            {
+                await _predictiveAlertService.EvaluatePredictiveAlertsAsync(metrics[i].MetricName);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Predictive alert evaluation failed for metric {MetricName}", metrics[i].MetricName);
+            }
+        }
+
+        try
+        {
+            await TryRecomputeHealthScoreThrottledAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Health score recomputation failed after batch ingest for tenant {TenantId}", tenantId);
         }
 
         return ApiResponse<List<MetricDto>>.Ok(dtos);
+    }
+
+    private async Task TryRecomputeHealthScoreThrottledAsync()
+    {
+        var tenantId = _tenantContext.TenantId;
+        var last = await _db.HealthScores.AsNoTracking()
+            .Where(h => h.TenantId == tenantId)
+            .OrderByDescending(h => h.CalculatedAt)
+            .FirstOrDefaultAsync();
+
+        if (last is not null && last.CalculatedAt > DateTime.UtcNow.AddMinutes(-1))
+        {
+            return;
+        }
+
+        await _healthScoreComputeService.ComputeAndStoreHealthScoreAsync();
     }
 
     public async Task<ApiResponse<PagedResult<MetricDto>>> GetMetricsAsync(string? category, PagedRequest paging)
@@ -235,4 +328,3 @@ public class MetricService : IMetricService
         };
     }
 }
-

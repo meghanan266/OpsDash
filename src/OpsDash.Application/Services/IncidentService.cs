@@ -52,7 +52,7 @@ public class IncidentService : IIncidentService
         }
 
         var detail = _mapper.Map<IncidentDetailDto>(incident);
-        detail.Events = incident.Events
+        detail.Events = (incident.Events ?? [])
             .OrderBy(e => e.CreatedAt)
             .Select(e => _mapper.Map<IncidentEventDto>(e))
             .ToList();

@@ -53,10 +53,16 @@ public sealed class AnomalyDetectionServiceTests
         correlation.Setup(c => c.FindCorrelationsAsync(It.IsAny<long>()))
             .ReturnsAsync(new List<CorrelationResult>());
 
+        var incidentAutoGroup = new Mock<IIncidentAutoGroupService>();
+        incidentAutoGroup.Setup(i => i.ProcessAnomalyForIncidentAsync(It.IsAny<long>()))
+            .ReturnsAsync((int?)null);
+        incidentAutoGroup.Setup(i => i.CheckAndAutoResolveIncidentsAsync()).Returns(Task.CompletedTask);
+
         return new AnomalyDetectionService(
             db.Object,
             tenant.Object,
             correlation.Object,
+            incidentAutoGroup.Object,
             NullLogger<AnomalyDetectionService>.Instance,
             Options.Create(settings ?? new AnomalyDetectionSettings()));
     }

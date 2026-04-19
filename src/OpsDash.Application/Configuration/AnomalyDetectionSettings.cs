@@ -15,4 +15,6 @@ public sealed class AnomalyDetectionSettings
     public int CorrelationWindowMinutes { get; set; } = 15;
 
     public double CorrelationZScoreThreshold { get; set; } = 1.5;
+
+    public int IncidentGroupingWindowMinutes { get; set; } = 30;
 }

@@ -28,6 +28,9 @@ public static class ApplicationServiceRegistration
         services.AddScoped<ICorrelationService, CorrelationService>();
         services.AddScoped<IAnomalyDetectionService, AnomalyDetectionService>();
         services.AddScoped<IForecastService, ForecastService>();
+        services.AddScoped<IPredictiveAlertService, PredictiveAlertService>();
+        services.AddScoped<IHealthScoreComputeService, HealthScoreComputeService>();
+        services.AddScoped<IIncidentAutoGroupService, IncidentAutoGroupService>();
 
         return services;
     }

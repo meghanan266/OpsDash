@@ -1,0 +1,159 @@
+:host {
+  display: block;
+  background: #fafafa;
+  min-height: 100%;
+  padding-bottom: 32px;
+}
+
+.dashboard {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 16px 24px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+mat-progress-bar {
+  border-radius: 4px;
+}
+
+.row {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+.row-1 {
+  flex-wrap: wrap;
+}
+
+.health-col {
+  flex: 0 0 280px;
+  max-width: 100%;
+}
+
+.kpi-col {
+  flex: 1 1 400px;
+  min-width: 0;
+}
+
+.row-3 {
+  flex-wrap: wrap;
+}
+
+.chart-panel {
+  flex: 1 1 58%;
+  min-width: 280px;
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+
+.chart-panel mat-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chart-block {
+  flex: 0 0 auto;
+  position: relative;
+  width: 100%;
+  height: 340px;
+  min-height: 280px;
+  max-height: 360px;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--mat-sys-surface);
+  contain: layout style;
+}
+
+.chart-block--forecast {
+  height: 280px;
+  min-height: 240px;
+  max-height: 300px;
+  margin-top: 4px;
+}
+
+.metrics-region {
+  position: relative;
+  z-index: 1;
+  margin-top: 8px;
+  padding-top: 8px;
+  background: #fafafa;
+}
+
+.side-stack {
+  flex: 1 1 38%;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.panel {
+  border-radius: 12px;
+}
+
+.section-title {
+  margin: 0 0 12px;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.sub-title {
+  margin: 20px 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 78%, transparent);
+}
+
+.incidents-panel {
+  .incident-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+
+    li {
+      padding: 8px 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--mat-sys-outline) 22%, transparent);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    a {
+      font-weight: 500;
+      color: var(--mat-sys-primary);
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+.muted {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+  font-size: 0.875rem;
+}
+
+.small {
+  font-size: 0.75rem;
+}
+
+@media (max-width: 960px) {
+  .row-1,
+  .row-3 {
+    flex-direction: column;
+  }
+
+  .health-col,
+  .chart-panel,
+  .side-stack {
+    flex: 1 1 auto;
+    width: 100%;
+  }
+}

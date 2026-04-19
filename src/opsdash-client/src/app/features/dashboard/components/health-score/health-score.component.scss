@@ -1,0 +1,112 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.health-card {
+  height: 100%;
+  border-radius: 12px;
+}
+
+.gauge-wrap {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  margin: 0 auto 16px;
+}
+
+.gauge {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.gauge-bg {
+  fill: none;
+  stroke: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+  stroke-width: 10;
+}
+
+.gauge-arc {
+  fill: none;
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.6s ease;
+}
+
+.band-high {
+  stroke: #2e7d32;
+}
+
+.band-mid {
+  stroke: #f9a825;
+}
+
+.band-low {
+  stroke: #c62828;
+}
+
+.band-unknown {
+  stroke: color-mix(in srgb, var(--mat-sys-on-surface) 25%, transparent);
+}
+
+.score-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.score-num {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--mat-sys-on-surface);
+}
+
+.score-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+  margin-top: 4px;
+}
+
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 0.875rem;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+
+  strong {
+    color: var(--mat-sys-on-surface);
+    font-weight: 600;
+  }
+}
+
+.na-state {
+  text-align: center;
+  padding: 32px 16px;
+}
+
+.na-score {
+  font-size: 3rem;
+  font-weight: 700;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 35%, transparent);
+}
+
+.na-text {
+  margin: 12px 0 0;
+  font-size: 0.9rem;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+}

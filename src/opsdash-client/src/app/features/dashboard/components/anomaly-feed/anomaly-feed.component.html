@@ -1,0 +1,25 @@
+<div class="feed-header">
+  <h3>Active anomalies</h3>
+</div>
+<div class="feed-scroll">
+  @if (anomalies().length === 0) {
+    <p class="empty">No active anomalies</p>
+  } @else {
+    <div class="anomaly-list" role="list">
+      @for (a of anomalies(); track a.id) {
+        <a class="anomaly-item" role="listitem" routerLink="/incidents" (click)="onRowClick(a)">
+          <div class="anomaly-head">
+            <span class="badge" [class]="severityClass(a.severity)">{{ a.severity }}</span>
+            <span class="mname">{{ formatTitle(a.metricName) }}</span>
+          </div>
+          <div class="anomaly-stats">
+            Value {{ formatAnomalyValue(a) }} · Z {{ formatZ(a.zScore) }}
+          </div>
+          <div class="anomaly-meta">
+            {{ timeAgo(a.detectedAt) }} · {{ a.isActive ? 'Active' : 'Resolved' }}
+          </div>
+        </a>
+      }
+    </div>
+  }
+</div>

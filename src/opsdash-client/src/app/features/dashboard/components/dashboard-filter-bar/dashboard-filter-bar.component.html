@@ -1,0 +1,26 @@
+<div class="bar">
+  <mat-form-field appearance="outline" class="field date">
+    <mat-label>Start date</mat-label>
+    <input matInput type="date" [ngModel]="startDate()" (ngModelChange)="startDate.set($event)" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="field date">
+    <mat-label>End date</mat-label>
+    <input matInput type="date" [ngModel]="endDate()" (ngModelChange)="endDate.set($event)" />
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="field category">
+    <mat-label>Category</mat-label>
+    <mat-select [value]="category()" (selectionChange)="category.set($event.value)">
+      <mat-option [value]="null">All categories</mat-option>
+      @for (c of categories(); track c) {
+        <mat-option [value]="c">{{ c }}</mat-option>
+      }
+    </mat-select>
+  </mat-form-field>
+
+  <button mat-flat-button color="primary" type="button" class="refresh" (click)="emitRefresh()">
+    <mat-icon>refresh</mat-icon>
+    Refresh
+  </button>
+</div>

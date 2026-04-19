@@ -1,0 +1,32 @@
+:host {
+  display: block;
+}
+
+.bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+}
+
+.field {
+  min-width: 160px;
+}
+
+.field.category {
+  flex: 1 1 220px;
+  max-width: 320px;
+}
+
+.refresh mat-icon {
+  margin-right: 4px;
+  vertical-align: middle;
+}
+
+@media (max-width: 720px) {
+  .field,
+  .field.category {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+}

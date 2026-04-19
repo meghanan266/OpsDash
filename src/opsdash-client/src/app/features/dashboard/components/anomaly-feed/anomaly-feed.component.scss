@@ -1,0 +1,111 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 280px;
+}
+
+.feed-header {
+  padding: 0 8px 8px;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.feed-scroll {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 340px;
+  border: 1px solid color-mix(in srgb, var(--mat-sys-outline) 35%, transparent);
+  border-radius: 8px;
+  background: var(--mat-sys-surface);
+}
+
+.empty {
+  margin: 0;
+  padding: 24px 16px;
+  text-align: center;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+  font-size: 0.9rem;
+}
+
+.anomaly-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.anomaly-item {
+  display: block;
+  padding: 12px 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--mat-sys-outline) 22%, transparent);
+  text-decoration: none;
+  color: inherit;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 4%, transparent);
+  }
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.anomaly-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 8px 10px;
+  margin-bottom: 6px;
+}
+
+.badge {
+  flex: 0 0 auto;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: 999px;
+  line-height: 1.2;
+}
+
+.sev-warning {
+  background: #fff8e1;
+  color: #f57f17;
+}
+
+.sev-critical {
+  background: #fff3e0;
+  color: #ef6c00;
+}
+
+.sev-severe {
+  background: #ffebee;
+  color: #c62828;
+}
+
+.mname {
+  flex: 1 1 140px;
+  min-width: 0;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1.35;
+  color: var(--mat-sys-on-surface);
+}
+
+.anomaly-stats {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 72%, transparent);
+  margin-bottom: 4px;
+}
+
+.anomaly-meta {
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
+}

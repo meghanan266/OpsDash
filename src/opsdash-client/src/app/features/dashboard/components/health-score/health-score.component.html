@@ -1,0 +1,47 @@
+<mat-card class="health-card" appearance="outlined">
+  <mat-card-content>
+    @if (healthScore(); as h) {
+      <div class="gauge-wrap">
+        <svg class="gauge" viewBox="0 0 120 120" aria-hidden="true">
+          <circle class="gauge-bg" cx="60" cy="60" r="52" />
+          <circle
+            class="gauge-arc"
+            [class]="bandClass()"
+            cx="60"
+            cy="60"
+            r="52"
+            [attr.stroke-dasharray]="circumference"
+            [attr.stroke-dashoffset]="dashOffset()"
+          />
+        </svg>
+        <div class="score-center">
+          <span class="score-num">{{ score() }}</span>
+          <span class="score-label">Health</span>
+        </div>
+      </div>
+      <div class="breakdown">
+        <div class="row">
+          <span>Normal metrics</span>
+          <strong>{{ h.normalMetricPct | number: '1.0-1' }}%</strong>
+        </div>
+        <div class="row">
+          <span>Active anomalies</span>
+          <strong>{{ h.activeAnomalies }}</strong>
+        </div>
+        <div class="row">
+          <span>Trend score</span>
+          <strong>{{ h.trendScore | number: '1.0-1' }}</strong>
+        </div>
+        <div class="row">
+          <span>Response score</span>
+          <strong>{{ h.responseScore | number: '1.0-1' }}</strong>
+        </div>
+      </div>
+    } @else {
+      <div class="na-state">
+        <span class="na-score">—</span>
+        <p class="na-text">Health score not available</p>
+      </div>
+    }
+  </mat-card-content>
+</mat-card>

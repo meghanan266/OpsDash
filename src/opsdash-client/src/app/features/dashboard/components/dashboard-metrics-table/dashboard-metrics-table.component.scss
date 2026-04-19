@@ -1,0 +1,51 @@
+:host {
+  display: block;
+}
+
+.table-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+}
+
+.chip {
+  font-size: 0.8125rem;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--mat-sys-primary) 12%, transparent);
+  color: var(--mat-sys-primary);
+  font-weight: 500;
+
+  &.muted {
+    background: color-mix(in srgb, var(--mat-sys-on-surface) 8%, transparent);
+    color: color-mix(in srgb, var(--mat-sys-on-surface) 62%, transparent);
+  }
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  padding: 48px;
+}
+
+.table-wrap {
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--mat-sys-surface);
+}
+
+table {
+  width: 100%;
+}
+
+mat-paginator {
+  margin-top: 8px;
+}

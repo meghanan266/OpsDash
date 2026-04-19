@@ -1,0 +1,30 @@
+<div class="kpi-grid">
+  @for (s of filteredSummaries(); track s.metricName) {
+    <mat-card
+      class="kpi-card"
+      [class.selected]="isSelected(s.metricName)"
+      appearance="outlined"
+      (click)="onCardClick(s.metricName)"
+      (keyup.enter)="onCardClick(s.metricName)"
+      tabindex="0"
+      role="button"
+    >
+      <mat-card-content>
+        <div class="kpi-header">
+          <span class="metric-title">{{ formatTitle(s.metricName) }}</span>
+          <mat-icon class="trend-icon" [class]="trendClass(s)">{{ trendIcon(s.trendDirection) }}</mat-icon>
+        </div>
+        <div class="kpi-value">{{ formatValue(s.metricName, s.latestValue) }}</div>
+        <div class="kpi-meta">
+          <span>Min {{ formatValue(s.metricName, s.minValue) }}</span>
+          <span>Max {{ formatValue(s.metricName, s.maxValue) }}</span>
+          <span>Avg {{ formatValue(s.metricName, s.avgValue) }}</span>
+        </div>
+        <div class="kpi-count">{{ s.dataPointCount | number }} points</div>
+      </mat-card-content>
+    </mat-card>
+  }
+  @if (filteredSummaries().length === 0) {
+    <p class="empty">No KPI data for the current filters.</p>
+  }
+</div>

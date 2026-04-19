@@ -1,0 +1,62 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 18px 40px;
+}
+
+h1 {
+  margin: 0 0 16px;
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.tab-body {
+  padding: 16px 0 8px;
+}
+
+.rules-table,
+.hist-table {
+  width: 100%;
+}
+
+.hist-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+
+  .label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: color-mix(in srgb, var(--mat-sys-on-surface) 65%, transparent);
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.badge--pred {
+  background: #ede7f6;
+  color: #4527a0;
+}
+
+.badge--cur {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.sub {
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 65%, transparent);
+  font-size: 0.85rem;
+}
+
+mat-spinner {
+  margin: 16px auto;
+  display: block;
+}

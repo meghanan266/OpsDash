@@ -1,0 +1,30 @@
+<div class="panel-head">
+  <h3>Recent incidents</h3>
+</div>
+<div class="panel-body">
+  @if (incidents().length === 0) {
+    <p class="muted">No recent incidents</p>
+  } @else {
+    <ul class="incident-list">
+      @for (i of incidents(); track i.id) {
+        <li>
+          <a class="incident-row" [routerLink]="['/incidents', i.id]">
+            <span class="sev-ico" [class]="severityTone(i.severity)">
+              <mat-icon>{{ severityIcon(i.severity) }}</mat-icon>
+            </span>
+            <div class="incident-main">
+              <span class="title">{{ truncate(i.title) }}</span>
+              <div class="meta">
+                <span class="chip" [class]="statusClass(i.status)">{{ i.status }}</span>
+                <span class="muted">{{ timeAgo(i.startedAt) }} · {{ i.anomalyCount }} anomalies</span>
+              </div>
+            </div>
+          </a>
+        </li>
+      }
+    </ul>
+  }
+</div>
+<div class="panel-foot">
+  <a routerLink="/incidents" class="view-all">View all incidents</a>
+</div>

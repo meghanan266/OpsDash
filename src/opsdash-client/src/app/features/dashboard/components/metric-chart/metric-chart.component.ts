@@ -1,6 +1,6 @@
 import { Component, effect, input, signal } from '@angular/core';
 import { NgChartsModule } from 'ng2-charts';
-import type { ChartConfiguration, ChartData } from 'chart.js';
+import type { ChartConfiguration, ChartData, TooltipItem } from 'chart.js';
 import type { Anomaly, MetricHistoryPoint } from '../../models/dashboard.models';
 import { formatMetricTitle } from '../../utils/metric-format';
 
@@ -31,19 +31,26 @@ export class MetricChartComponent {
       const labels = history.map((h) => this.shortDate(h.recordedAt));
       const linePoints = history.map((h) => Number(h.metricValue));
 
-      const primary = '#1976d2';
-      const scatterPts = anoms.map((a) => {
-        let bestI = 0;
-        let best = Infinity;
-        history.forEach((h, i) => {
-          const d = Math.abs(Date.parse(h.recordedAt) - Date.parse(a.detectedAt));
-          if (d < best) {
-            best = d;
-            bestI = i;
+      const anomalyByPointIndex: (Anomaly | null)[] = history.map((h) => {
+        const t = Date.parse(h.recordedAt);
+        let best: Anomaly | null = null;
+        let bestDelta = Infinity;
+        for (const a of anoms) {
+          const d = Math.abs(Date.parse(a.detectedAt) - t);
+          if (d < bestDelta && d < 120_000) {
+            bestDelta = d;
+            best = a;
           }
-        });
-        return { x: labels[bestI] ?? labels[0], y: Number(a.metricValue) };
+        }
+
+        return bestDelta < 120_000 ? best : null;
       });
+
+      const pointRadii = anomalyByPointIndex.map((a) => (a ? 6 : 0));
+      const pointColors = anomalyByPointIndex.map((a) => (a ? '#c62828' : 'rgba(25,118,210,0)'));
+      const pointBorderColors = anomalyByPointIndex.map((a) => (a ? '#fff' : 'transparent'));
+
+      const primary = '#1976d2';
 
       this.chartData.set({
         labels,
@@ -56,26 +63,16 @@ export class MetricChartComponent {
             backgroundColor: 'rgba(25, 118, 210, 0.12)',
             fill: true,
             tension: 0.35,
-            pointRadius: 0,
-            pointHoverRadius: 4,
+            pointRadius: pointRadii,
+            pointHoverRadius: pointRadii.map((r) => (r > 0 ? 8 : 4)),
+            pointBackgroundColor: pointColors,
+            pointBorderColor: pointBorderColors,
+            pointBorderWidth: anomalyByPointIndex.map((a) => (a ? 2 : 0)),
           },
-          ...(scatterPts.length
-            ? [
-                {
-                  type: 'scatter' as const,
-                  label: 'Anomalies',
-                  data: scatterPts,
-                  pointBackgroundColor: '#c62828',
-                  pointBorderColor: '#fff',
-                  pointRadius: 5,
-                  pointHoverRadius: 7,
-                },
-              ]
-            : []),
         ],
-      } as ChartData<'line'>);
+      });
 
-      this.chartOptions.set(this.buildOptions(formatMetricTitle(name)));
+      this.chartOptions.set(this.buildOptions(formatMetricTitle(name), anomalyByPointIndex));
     });
   }
 
@@ -84,7 +81,10 @@ export class MetricChartComponent {
     return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit' });
   }
 
-  private buildOptions(title?: string): ChartConfiguration<'line'>['options'] {
+  private buildOptions(
+    title?: string,
+    anomalyByPointIndex: (Anomaly | null)[] = [],
+  ): ChartConfiguration<'line'>['options'] {
     return {
       responsive: true,
       maintainAspectRatio: false,
@@ -94,9 +94,20 @@ export class MetricChartComponent {
         title: title ? { display: true, text: title } : { display: false },
         tooltip: {
           callbacks: {
-            label: (ctx) => {
+            label: (ctx: TooltipItem<'line'>) => {
               const v = ctx.parsed.y;
-              return `${ctx.dataset.label ?? ''}: ${v != null ? Number(v).toLocaleString() : ''}`;
+              const base = `${ctx.dataset.label ?? ''}: ${v != null ? Number(v).toLocaleString() : ''}`;
+              const idx = ctx.dataIndex;
+              const a = anomalyByPointIndex[idx];
+              if (a) {
+                const z = Number(a.zScore).toLocaleString(undefined, {
+                  maximumFractionDigits: 2,
+                  minimumFractionDigits: 2,
+                });
+                return `${base}\nAnomaly: Z-score ${z}, Severity: ${a.severity}`;
+              }
+
+              return base;
             },
           },
         },

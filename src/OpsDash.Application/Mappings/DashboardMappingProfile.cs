@@ -18,7 +18,8 @@ public class DashboardMappingProfile : Profile
         CreateMap<Incident, IncidentDto>();
         CreateMap<Incident, IncidentDetailDto>()
             .IncludeBase<Incident, IncidentDto>()
-            .ForMember(d => d.Events, o => o.Ignore());
+            .ForMember(d => d.Events, o => o.Ignore())
+            .ForMember(d => d.CorrelatedMetrics, o => o.Ignore());
         CreateMap<IncidentEvent, IncidentEventDto>();
     }
 }

@@ -5,7 +5,12 @@ namespace OpsDash.Application.Interfaces;
 
 public interface IIncidentService
 {
-    Task<ApiResponse<PagedResult<IncidentDto>>> GetIncidentsAsync(PagedRequest paging);
+    Task<ApiResponse<PagedResult<IncidentDto>>> GetIncidentsAsync(
+        PagedRequest paging,
+        string? status = null,
+        string? severity = null);
+
+    Task<ApiResponse<IncidentStatsDto>> GetStatsAsync();
 
     Task<ApiResponse<IncidentDetailDto>> GetByIdAsync(int id);
 

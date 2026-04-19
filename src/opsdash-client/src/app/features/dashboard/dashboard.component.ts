@@ -5,10 +5,9 @@ import { MatButtonToggleChange, MatButtonToggleModule } from '@angular/material/
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { PageEvent } from '@angular/material/paginator';
 import { Sort } from '@angular/material/sort';
-import { Router, RouterLink } from '@angular/router';
 import { combineLatest, forkJoin, of } from 'rxjs';
 import { catchError, debounceTime, distinctUntilChanged, finalize, skip, switchMap } from 'rxjs/operators';
-import type { ApiResponse, HealthScore, PagedResult } from '../../core/models/common.model';
+import type { ApiResponse, PagedResult } from '../../core/models/common.model';
 import { AnomalyFeedComponent } from './components/anomaly-feed/anomaly-feed.component';
 import { DashboardFilterBarComponent } from './components/dashboard-filter-bar/dashboard-filter-bar.component';
 import { DashboardMetricsTableComponent } from './components/dashboard-metrics-table/dashboard-metrics-table.component';
@@ -16,6 +15,7 @@ import { ForecastChartComponent } from './components/forecast-chart/forecast-cha
 import { HealthScoreComponent } from './components/health-score/health-score.component';
 import { KpiSummaryComponent } from './components/kpi-summary/kpi-summary.component';
 import { MetricChartComponent } from './components/metric-chart/metric-chart.component';
+import { RecentIncidentsPanelComponent } from './components/recent-incidents-panel/recent-incidents-panel.component';
 import type { Anomaly, ForecastPoint, IncidentRow, MetricHistoryPoint, MetricRow, MetricSummary } from './models/dashboard.models';
 import { DashboardService } from './services/dashboard.service';
 
@@ -26,13 +26,13 @@ import { DashboardService } from './services/dashboard.service';
     MatCardModule,
     MatButtonToggleModule,
     MatProgressBarModule,
-    RouterLink,
     DashboardFilterBarComponent,
     HealthScoreComponent,
     KpiSummaryComponent,
     MetricChartComponent,
     ForecastChartComponent,
     AnomalyFeedComponent,
+    RecentIncidentsPanelComponent,
     DashboardMetricsTableComponent,
   ],
   templateUrl: './dashboard.component.html',
@@ -40,7 +40,6 @@ import { DashboardService } from './services/dashboard.service';
 })
 export class DashboardComponent {
   private readonly dashboard = inject(DashboardService);
-  private readonly router = inject(Router);
 
   readonly filterStart = model<string>('');
   readonly filterEnd = model<string>('');
@@ -49,12 +48,12 @@ export class DashboardComponent {
   readonly loading = signal(false);
   readonly categories = signal<string[]>([]);
   readonly summaries = signal<MetricSummary[]>([]);
-  readonly healthScore = signal<HealthScore | null>(null);
   readonly anomalies = signal<Anomaly[]>([]);
   readonly incidents = signal<IncidentRow[]>([]);
   readonly chartMetricName = signal<string>('');
   readonly chartHistory = signal<MetricHistoryPoint[]>([]);
   readonly chartForecast = signal<ForecastPoint[]>([]);
+  readonly chartAnomalies = signal<Anomaly[]>([]);
   readonly forecastMethod = signal<'WMA' | 'LinearRegression'>('WMA');
   readonly tableRows = signal<MetricRow[]>([]);
   readonly tableTotal = signal(0);
@@ -63,10 +62,7 @@ export class DashboardComponent {
   readonly tableSortActive = signal('recordedAt');
   readonly tableSortDirection = signal<'asc' | 'desc'>('desc');
 
-  readonly chartAnomalies = computed(() => {
-    const name = this.chartMetricName();
-    return this.anomalies().filter((a) => a.metricName === name);
-  });
+  readonly hasChartMetric = computed(() => !!this.chartMetricName().trim());
 
   constructor() {
     this.reloadAll();
@@ -122,10 +118,6 @@ export class DashboardComponent {
     this.loadTable();
   }
 
-  onAnomalyClick(_a: Anomaly): void {
-    void this.router.navigate(['/incidents']);
-  }
-
   private dateParams(): { startDate?: string; endDate?: string } {
     const s = this.filterStart().trim();
     const e = this.filterEnd().trim();
@@ -141,7 +133,6 @@ export class DashboardComponent {
     forkJoin({
       categories: this.dashboard.getCategories().pipe(catchError(() => of(null))),
       summary: this.dashboard.getSummary(d.startDate, d.endDate).pipe(catchError(() => of(null))),
-      health: this.dashboard.getHealthScore().pipe(catchError(() => of(null))),
       anomalies: this.dashboard.getActiveAnomalies(1, 100).pipe(catchError(() => of(null))),
       incidents: this.dashboard.getRecentIncidents().pipe(catchError(() => of(null))),
     })
@@ -155,12 +146,6 @@ export class DashboardComponent {
             this.summaries.set(res.summary.data);
           } else {
             this.summaries.set([]);
-          }
-
-          if (res.health?.success) {
-            this.healthScore.set(res.health.data ?? null);
-          } else {
-            this.healthScore.set(null);
           }
 
           if (res.anomalies?.success && res.anomalies.data) {
@@ -187,6 +172,9 @@ export class DashboardComponent {
                   .getMetricForecast(name, this.forecastMethod(), undefined)
                   .pipe(catchError(() => of(null)))
               : of(null),
+            markers: name
+              ? this.dashboard.getAnomaliesForMetric(name, 1, 300).pipe(catchError(() => of(null)))
+              : of(null),
             table: this.dashboard
               .getMetrics(
                 cat,
@@ -211,6 +199,12 @@ export class DashboardComponent {
           this.chartForecast.set(r2.forecast.data);
         } else {
           this.chartForecast.set([]);
+        }
+
+        if (r2.markers?.success && r2.markers.data) {
+          this.chartAnomalies.set(r2.markers.data.items);
+        } else {
+          this.chartAnomalies.set([]);
         }
 
         if (r2.table?.success && r2.table.data) {
@@ -249,6 +243,9 @@ export class DashboardComponent {
                   .getMetricForecast(this.chartMetricName(), this.forecastMethod(), undefined)
                   .pipe(catchError(() => of(null)))
               : of(null),
+            markers: this.chartMetricName()
+              ? this.dashboard.getAnomaliesForMetric(this.chartMetricName(), 1, 300).pipe(catchError(() => of(null)))
+              : of(null),
             table: this.loadTableRequest(),
           });
         }),
@@ -265,6 +262,12 @@ export class DashboardComponent {
           this.chartForecast.set(r2.forecast.data);
         } else {
           this.chartForecast.set([]);
+        }
+
+        if (r2.markers?.success && r2.markers.data) {
+          this.chartAnomalies.set(r2.markers.data.items);
+        } else {
+          this.chartAnomalies.set([]);
         }
 
         this.applyTableResult(r2.table);
@@ -294,6 +297,9 @@ export class DashboardComponent {
                   .getMetricForecast(this.chartMetricName(), this.forecastMethod(), undefined)
                   .pipe(catchError(() => of(null)))
               : of(null),
+            markers: this.chartMetricName()
+              ? this.dashboard.getAnomaliesForMetric(this.chartMetricName(), 1, 300).pipe(catchError(() => of(null)))
+              : of(null),
             table: this.loadTableRequest(),
           });
         }),
@@ -310,6 +316,12 @@ export class DashboardComponent {
           this.chartForecast.set(r2.forecast.data);
         } else {
           this.chartForecast.set([]);
+        }
+
+        if (r2.markers?.success && r2.markers.data) {
+          this.chartAnomalies.set(r2.markers.data.items);
+        } else {
+          this.chartAnomalies.set([]);
         }
 
         this.applyTableResult(r2.table);
@@ -365,6 +377,7 @@ export class DashboardComponent {
     if (!name) {
       this.chartHistory.set([]);
       this.chartForecast.set([]);
+      this.chartAnomalies.set([]);
       return;
     }
 
@@ -374,9 +387,11 @@ export class DashboardComponent {
       forecast: this.dashboard
         .getMetricForecast(name, this.forecastMethod(), undefined)
         .pipe(catchError(() => of(null))),
+      markers: this.dashboard.getAnomaliesForMetric(name, 1, 300).pipe(catchError(() => of(null))),
     }).subscribe((r) => {
       this.chartHistory.set(r.chart?.success && r.chart.data ? r.chart.data : []);
       this.chartForecast.set(r.forecast?.success && r.forecast.data ? r.forecast.data : []);
+      this.chartAnomalies.set(r.markers?.success && r.markers.data ? r.markers.data.items : []);
     });
   }
 

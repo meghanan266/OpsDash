@@ -56,12 +56,28 @@ export class DashboardService {
     return this.api.get<HealthScore | null>('/health-score');
   }
 
-  getHealthScoreHistory(): Observable<ApiResponse<HealthScore[]>> {
-    return this.api.get<HealthScore[]>('/health-score/history', { take: 30 });
+  getHealthScoreHistory(take = 7): Observable<ApiResponse<HealthScore[]>> {
+    return this.api.get<HealthScore[]>('/health-score/history', { take });
   }
 
   getActiveAnomalies(page = 1, pageSize = 50): Observable<ApiResponse<PagedResult<Anomaly>>> {
-    return this.api.get<PagedResult<Anomaly>>('/anomalies/active', { page, pageSize, sortBy: 'detectedAt', sortDirection: 'desc' });
+    return this.api.get<PagedResult<Anomaly>>('/anomalies/active', {
+      page,
+      pageSize,
+      sortBy: 'detectedAt',
+      sortDirection: 'desc',
+    });
+  }
+
+  /** Historical anomalies for a metric (chart markers). */
+  getAnomaliesForMetric(metricName: string, page = 1, pageSize = 200): Observable<ApiResponse<PagedResult<Anomaly>>> {
+    return this.api.get<PagedResult<Anomaly>>('/anomalies', {
+      page,
+      pageSize,
+      sortBy: 'detectedAt',
+      sortDirection: 'desc',
+      metricName,
+    });
   }
 
   getRecentIncidents(): Observable<ApiResponse<PagedResult<IncidentRow>>> {

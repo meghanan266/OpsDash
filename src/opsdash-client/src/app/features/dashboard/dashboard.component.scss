@@ -29,12 +29,13 @@ mat-progress-bar {
 }
 
 .health-col {
-  flex: 0 0 280px;
+  flex: 0 0 25%;
   max-width: 100%;
+  min-width: 260px;
 }
 
 .kpi-col {
-  flex: 1 1 400px;
+  flex: 1 1 55%;
   min-width: 0;
 }
 
@@ -43,11 +44,29 @@ mat-progress-bar {
 }
 
 .chart-panel {
-  flex: 1 1 58%;
+  flex: 1 1 55%;
   min-width: 280px;
   position: relative;
   z-index: 0;
   isolation: isolate;
+}
+
+.chart-panel--metric mat-card-content {
+  min-height: 0;
+}
+
+.row-4 {
+  flex-wrap: wrap;
+}
+
+.forecast-panel {
+  flex: 1 1 100%;
+  width: 100%;
+}
+
+.feed-card mat-card-content,
+.incidents-card mat-card-content {
+  padding-top: 12px;
 }
 
 .chart-panel mat-card-content {

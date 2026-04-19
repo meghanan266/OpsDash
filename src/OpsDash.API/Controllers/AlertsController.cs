@@ -28,9 +28,11 @@ public class AlertsController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<AlertDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<PagedResult<AlertDto>>>> GetAlerts([FromQuery] PagedRequest paging)
+    public async Task<ActionResult<ApiResponse<PagedResult<AlertDto>>>> GetAlerts(
+        [FromQuery] PagedRequest paging,
+        [FromQuery] bool? isPredictive = null)
     {
-        var result = await _alertService.GetAlertsAsync(paging);
+        var result = await _alertService.GetAlertsAsync(paging, isPredictive);
         return Ok(result);
     }
 

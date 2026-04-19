@@ -18,7 +18,7 @@ public class AnomalyService : IAnomalyService
         _mapper = mapper;
     }
 
-    public async Task<ApiResponse<PagedResult<AnomalyDto>>> GetAnomaliesAsync(PagedRequest paging)
+    public async Task<ApiResponse<PagedResult<AnomalyDto>>> GetAnomaliesAsync(PagedRequest paging, string? metricName = null)
     {
         paging ??= new PagedRequest();
         if (string.IsNullOrWhiteSpace(paging.SortBy))
@@ -28,6 +28,12 @@ public class AnomalyService : IAnomalyService
         }
 
         var query = _db.AnomalyScores.AsNoTracking();
+        if (!string.IsNullOrWhiteSpace(metricName))
+        {
+            var mn = metricName.Trim();
+            query = query.Where(a => a.MetricName == mn);
+        }
+
         query = ApplySorting(query, paging);
 
         var total = await query.CountAsync();

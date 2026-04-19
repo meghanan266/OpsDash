@@ -110,3 +110,41 @@
   font-size: 0.9rem;
   color: color-mix(in srgb, var(--mat-sys-on-surface) 55%, transparent);
 }
+
+.loading-wrap {
+  display: flex;
+  justify-content: center;
+  padding: 48px 16px;
+}
+
+.score-tone.band-high .score-num {
+  color: #1b5e20;
+}
+
+.score-tone.band-mid .score-num {
+  color: #e65100;
+}
+
+.score-tone.band-low .score-num {
+  color: #b71c1c;
+}
+
+.spark-wrap {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid color-mix(in srgb, var(--mat-sys-outline) 18%, transparent);
+}
+
+.spark-label {
+  display: block;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: color-mix(in srgb, var(--mat-sys-on-surface) 50%, transparent);
+  margin-bottom: 4px;
+}
+
+.spark-chart {
+  height: 56px;
+  position: relative;
+}

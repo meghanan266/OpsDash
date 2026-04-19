@@ -1,6 +1,11 @@
 <mat-card class="health-card" appearance="outlined">
   <mat-card-content>
-    @if (healthScore(); as h) {
+    @if (loading()) {
+      <div class="loading-wrap">
+        <mat-progress-spinner diameter="40" mode="indeterminate" />
+      </div>
+    } @else {
+      @if (healthScore(); as h) {
       <div class="gauge-wrap">
         <svg class="gauge" viewBox="0 0 120 120" aria-hidden="true">
           <circle class="gauge-bg" cx="60" cy="60" r="52" />
@@ -14,7 +19,7 @@
             [attr.stroke-dashoffset]="dashOffset()"
           />
         </svg>
-        <div class="score-center">
+        <div class="score-center" [class]="'score-tone ' + bandClass()">
           <span class="score-num">{{ score() }}</span>
           <span class="score-label">Health</span>
         </div>
@@ -37,11 +42,25 @@
           <strong>{{ h.responseScore | number: '1.0-1' }}</strong>
         </div>
       </div>
-    } @else {
+      @if (historyScores().length > 1) {
+        <div class="spark-wrap">
+          <span class="spark-label">Last {{ historyScores().length }} scores</span>
+          <div class="spark-chart">
+            <canvas
+              baseChart
+              [data]="sparklineData()"
+              [options]="sparklineOptions()"
+              [type]="sparklineType()"
+            ></canvas>
+          </div>
+        </div>
+      }
+      } @else {
       <div class="na-state">
         <span class="na-score">—</span>
-        <p class="na-text">Health score not available</p>
+        <p class="na-text">No health data available</p>
       </div>
+      }
     }
   </mat-card-content>
 </mat-card>

@@ -1,8 +1,182 @@
-import { Component } from '@angular/core';
+import { DatePipe, DecimalPipe } from '@angular/common';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
+import { MatButtonModule } from '@angular/material/button';
+import { MatCardModule } from '@angular/material/card';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatSelectModule } from '@angular/material/select';
+import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTableModule } from '@angular/material/table';
+import { ActivatedRoute, RouterLink } from '@angular/router';
+import { catchError, finalize, switchMap, take } from 'rxjs/operators';
+import { of } from 'rxjs';
+import type { IncidentDetail } from '../models/incident.models';
+import { IncidentsService } from '../incidents.service';
+import { formatTimeAgo } from '../../dashboard/utils/time-ago';
 
 @Component({
   selector: 'app-incident-detail',
   standalone: true,
-  template: '<p>IncidentDetailComponent works!</p>',
+  imports: [
+    MatCardModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatFormFieldModule,
+    MatSelectModule,
+    FormsModule,
+    MatTableModule,
+    MatSnackBarModule,
+    RouterLink,
+    DatePipe,
+    DecimalPipe,
+  ],
+  templateUrl: './incident-detail.component.html',
+  styleUrl: './incident-detail.component.scss',
 })
-export class IncidentDetailComponent {}
+export class IncidentDetailComponent {
+  private readonly route = inject(ActivatedRoute);
+  private readonly incidentsApi = inject(IncidentsService);
+  private readonly snackBar = inject(MatSnackBar);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly loading = signal(true);
+  readonly incident = signal<IncidentDetail | null>(null);
+  readonly statusEdit = signal('');
+  readonly correlationColumns = ['metricName', 'value', 'zScore', 'offset'];
+
+  timeAgo = formatTimeAgo;
+
+  constructor() {
+    this.route.paramMap
+      .pipe(
+        switchMap((pm) => {
+          const id = Number(pm.get('id'));
+          if (!Number.isFinite(id) || id <= 0) {
+            return of(null);
+          }
+
+          this.loading.set(true);
+          return this.incidentsApi.getById(id).pipe(
+            catchError(() => of(null)),
+            finalize(() => this.loading.set(false)),
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef),
+      )
+      .subscribe((res) => {
+        if (res?.success && res.data) {
+          this.incident.set(res.data);
+          this.statusEdit.set(res.data.status);
+        } else {
+          this.incident.set(null);
+          this.statusEdit.set('');
+        }
+      });
+  }
+
+  eventDotClass(type: string): string {
+    const t = (type || '').toLowerCase();
+    if (t === 'anomalydetected') {
+      return 'dot-anomaly';
+    }
+
+    if (t === 'correlationfound') {
+      return 'dot-corr';
+    }
+
+    if (t === 'acknowledged') {
+      return 'dot-ack';
+    }
+
+    if (t === 'statuschanged') {
+      return 'dot-status';
+    }
+
+    if (t === 'resolved') {
+      return 'dot-resolved';
+    }
+
+    if (t === 'metricnormalized') {
+      return 'dot-norm';
+    }
+
+    return 'dot-default';
+  }
+
+  canAcknowledge(): boolean {
+    const i = this.incident();
+    return !!i && i.status.toLowerCase() === 'open';
+  }
+
+  acknowledge(): void {
+    const i = this.incident();
+    if (!i) {
+      return;
+    }
+
+    this.incidentsApi
+      .acknowledge(i.id)
+      .pipe(catchError(() => of(null)), take(1))
+      .subscribe((res) => {
+        if (res?.success) {
+          this.snackBar.open('Incident acknowledged', 'Dismiss', { duration: 4000 });
+          this.reloadOne(i.id);
+        } else {
+          this.snackBar.open(res?.message ?? 'Acknowledge failed', 'Dismiss', { duration: 5000 });
+        }
+      });
+  }
+
+  applyStatus(): void {
+    const i = this.incident();
+    const st = this.statusEdit().trim();
+    if (!i || !st) {
+      return;
+    }
+
+    this.incidentsApi
+      .updateStatus(i.id, st)
+      .pipe(catchError(() => of(null)), take(1))
+      .subscribe((res) => {
+        if (res?.success) {
+          this.snackBar.open('Status updated', 'Dismiss', { duration: 4000 });
+          this.reloadOne(i.id);
+        } else {
+          this.snackBar.open(res?.message ?? 'Update failed', 'Dismiss', { duration: 5000 });
+        }
+      });
+  }
+
+  formatOffset(sec: number): string {
+    if (sec === 0) {
+      return '0s';
+    }
+
+    if (Math.abs(sec) < 60) {
+      return `${sec}s`;
+    }
+
+    return `${Math.round(sec / 60)}m`;
+  }
+
+  private reloadOne(id: number): void {
+    this.loading.set(true);
+    this.incidentsApi
+      .getById(id)
+      .pipe(
+        catchError(() => of(null)),
+        finalize(() => this.loading.set(false)),
+        take(1),
+      )
+      .subscribe((res) => {
+        if (res?.success && res.data) {
+          this.incident.set(res.data);
+          this.statusEdit.set(res.data.status);
+        }
+      });
+  }
+}

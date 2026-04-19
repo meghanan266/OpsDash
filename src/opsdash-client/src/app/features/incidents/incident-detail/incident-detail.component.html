@@ -1,0 +1,104 @@
+<div class="page">
+  <a routerLink="/incidents" class="back">← Incidents</a>
+
+  @if (loading()) {
+    <div class="centered">
+      <mat-spinner diameter="40" />
+    </div>
+  } @else {
+    @if (incident(); as inc) {
+    <div class="header">
+      <div>
+        <h1>{{ inc.title }}</h1>
+        <p class="meta">
+          <span class="chip sev">{{ inc.severity }}</span>
+          <span class="chip st">{{ inc.status }}</span>
+          <span class="muted">Started {{ inc.startedAt | date: 'medium' }} · {{ timeAgo(inc.startedAt) }}</span>
+        </p>
+      </div>
+      <div class="actions">
+        @if (canAcknowledge()) {
+          <button mat-stroked-button color="primary" type="button" (click)="acknowledge()">
+            <mat-icon>verified</mat-icon>
+            Acknowledge
+          </button>
+        }
+        <mat-form-field appearance="outline" class="status-field" subscriptSizing="dynamic">
+          <mat-label>Status</mat-label>
+          <mat-select [ngModel]="statusEdit()" (ngModelChange)="statusEdit.set($event)">
+            <mat-option value="Open">Open</mat-option>
+            <mat-option value="Acknowledged">Acknowledged</mat-option>
+            <mat-option value="Investigating">Investigating</mat-option>
+            <mat-option value="Resolved">Resolved</mat-option>
+          </mat-select>
+        </mat-form-field>
+        <button mat-flat-button color="primary" type="button" (click)="applyStatus()">Update status</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <mat-card class="panel" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Timeline</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          <div class="timeline">
+            @for (ev of inc.events; track ev.id) {
+              <div class="tl-item">
+                <div class="tl-dot" [class]="eventDotClass(ev.eventType)"></div>
+                <div class="tl-card">
+                  <div class="tl-type">{{ ev.eventType }}</div>
+                  <p class="tl-desc">{{ ev.description }}</p>
+                  @if (ev.metricName) {
+                    <p class="tl-metric">
+                      {{ ev.metricName }}
+                      @if (ev.metricValue != null) {
+                        · {{ ev.metricValue }}
+                      }
+                    </p>
+                  }
+                  <div class="tl-time">{{ ev.createdAt | date: 'medium' }} · {{ timeAgo(ev.createdAt) }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="panel" appearance="outlined">
+        <mat-card-header>
+          <mat-card-title>Correlated metrics</mat-card-title>
+        </mat-card-header>
+        <mat-card-content>
+          @if (inc.correlatedMetrics.length === 0) {
+            <p class="muted">No stored correlations for this incident.</p>
+          } @else {
+            <table mat-table [dataSource]="inc.correlatedMetrics" class="corr-table">
+              <ng-container matColumnDef="metricName">
+                <th mat-header-cell *matHeaderCellDef>Metric</th>
+                <td mat-cell *matCellDef="let row">{{ row.correlatedMetricName }}</td>
+              </ng-container>
+              <ng-container matColumnDef="value">
+                <th mat-header-cell *matHeaderCellDef>Value</th>
+                <td mat-cell *matCellDef="let row">{{ row.correlatedMetricValue }}</td>
+              </ng-container>
+              <ng-container matColumnDef="zScore">
+                <th mat-header-cell *matHeaderCellDef>Z-score</th>
+                <td mat-cell *matCellDef="let row">{{ row.correlatedZScore | number: '1.2-2' }}</td>
+              </ng-container>
+              <ng-container matColumnDef="offset">
+                <th mat-header-cell *matHeaderCellDef>Time offset</th>
+                <td mat-cell *matCellDef="let row">{{ formatOffset(row.timeOffsetSeconds) }}</td>
+              </ng-container>
+              <tr mat-header-row *matHeaderRowDef="correlationColumns"></tr>
+              <tr mat-row *matRowDef="let row; columns: correlationColumns"></tr>
+            </table>
+          }
+        </mat-card-content>
+      </mat-card>
+    </div>
+    } @else {
+      <p class="muted">Incident not found.</p>
+    }
+  }
+</div>

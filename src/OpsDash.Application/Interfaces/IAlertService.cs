@@ -13,7 +13,7 @@ public interface IAlertService
 
     Task<ApiResponse<bool>> DeleteAlertRuleAsync(int id);
 
-    Task<ApiResponse<PagedResult<AlertDto>>> GetAlertsAsync(PagedRequest paging);
+    Task<ApiResponse<PagedResult<AlertDto>>> GetAlertsAsync(PagedRequest paging, bool? isPredictive = null);
 
     Task<ApiResponse<bool>> AcknowledgeAlertAsync(long id, int userId);
 }

@@ -24,13 +24,27 @@ public class IncidentsController : ControllerBase
     }
 
     /// <summary>
+    /// Returns summary counts for incident triage widgets.
+    /// </summary>
+    [HttpGet("stats")]
+    [ProducesResponseType(typeof(ApiResponse<IncidentStatsDto>), StatusCodes.Status200OK)]
+    public async Task<ActionResult<ApiResponse<IncidentStatsDto>>> GetStats()
+    {
+        var result = await _incidentService.GetStatsAsync();
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Returns a paginated list of incidents.
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<IncidentDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<PagedResult<IncidentDto>>>> GetIncidents([FromQuery] PagedRequest paging)
+    public async Task<ActionResult<ApiResponse<PagedResult<IncidentDto>>>> GetIncidents(
+        [FromQuery] PagedRequest paging,
+        [FromQuery] string? status = null,
+        [FromQuery] string? severity = null)
     {
-        var result = await _incidentService.GetIncidentsAsync(paging);
+        var result = await _incidentService.GetIncidentsAsync(paging, status, severity);
         return Ok(result);
     }
 

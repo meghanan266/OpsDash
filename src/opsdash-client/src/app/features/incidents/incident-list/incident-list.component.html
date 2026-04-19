@@ -1,0 +1,128 @@
+<div class="page">
+  <h1>Incidents</h1>
+
+  @if (loading() && !stats()) {
+    <mat-spinner diameter="40" />
+  } @else {
+    <div class="stats-row">
+      <mat-card class="stat-card" appearance="outlined">
+        <mat-card-content>
+          <span class="stat-label">Open</span>
+          <span class="stat-value">{{ stats()?.openCount ?? '—' }}</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="stat-card" appearance="outlined">
+        <mat-card-content>
+          <span class="stat-label">Investigating</span>
+          <span class="stat-value">{{ stats()?.investigatingCount ?? '—' }}</span>
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="stat-card" appearance="outlined">
+        <mat-card-content>
+          <span class="stat-label">Resolved (24h)</span>
+          <span class="stat-value">{{ stats()?.resolvedLast24HoursCount ?? '—' }}</span>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <mat-card class="filters" appearance="outlined">
+      <mat-card-content>
+        <div class="filter-block">
+          <span class="filter-label">Status</span>
+          <mat-button-toggle-group
+            [value]="statusFilter() ?? 'all'"
+            (change)="onStatusChange($event)"
+            hideSingleSelectionIndicator
+          >
+            <mat-button-toggle value="all">All</mat-button-toggle>
+            <mat-button-toggle value="Open">Open</mat-button-toggle>
+            <mat-button-toggle value="Acknowledged">Acknowledged</mat-button-toggle>
+            <mat-button-toggle value="Investigating">Investigating</mat-button-toggle>
+            <mat-button-toggle value="Resolved">Resolved</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+        <div class="filter-block">
+          <span class="filter-label">Severity</span>
+          <mat-button-toggle-group
+            [value]="severityFilter() ?? 'all'"
+            (change)="onSeverityChange($event)"
+            hideSingleSelectionIndicator
+          >
+            <mat-button-toggle value="all">All</mat-button-toggle>
+            <mat-button-toggle value="Warning">Warning</mat-button-toggle>
+            <mat-button-toggle value="Critical">Critical</mat-button-toggle>
+            <mat-button-toggle value="Severe">Severe</mat-button-toggle>
+          </mat-button-toggle-group>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card appearance="outlined">
+      <mat-card-content>
+        @if (loading()) {
+          <div class="table-loading">
+            <mat-spinner diameter="36" />
+          </div>
+        }
+        <div class="table-wrap" [class.table-wrap--dim]="loading()">
+          <table mat-table [dataSource]="rows()" class="incident-table">
+            <ng-container matColumnDef="severity">
+              <th mat-header-cell *matHeaderCellDef>Severity</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="sev-ico" [class]="severityClass(row.severity)">
+                  <mat-icon>{{ severityIcon(row.severity) }}</mat-icon>
+                </span>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="title">
+              <th mat-header-cell *matHeaderCellDef>Title</th>
+              <td mat-cell *matCellDef="let row">
+                <a [routerLink]="['/incidents', row.id]">{{ row.title }}</a>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="status">
+              <th mat-header-cell *matHeaderCellDef>Status</th>
+              <td mat-cell *matCellDef="let row">
+                <span class="chip" [class]="statusChipClass(row.status)">{{ row.status }}</span>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="metrics">
+              <th mat-header-cell *matHeaderCellDef>Affected metrics</th>
+              <td mat-cell *matCellDef="let row">
+                <div class="metric-chips">
+                  @for (m of parseMetrics(row.affectedMetrics); track m) {
+                    <span class="mini-chip">{{ m }}</span>
+                  }
+                  @if (parseMetrics(row.affectedMetrics).length === 0) {
+                    <span class="muted">—</span>
+                  }
+                </div>
+              </td>
+            </ng-container>
+            <ng-container matColumnDef="anomalyCount">
+              <th mat-header-cell *matHeaderCellDef>Anomalies</th>
+              <td mat-cell *matCellDef="let row">{{ row.anomalyCount }}</td>
+            </ng-container>
+            <ng-container matColumnDef="duration">
+              <th mat-header-cell *matHeaderCellDef>Duration</th>
+              <td mat-cell *matCellDef="let row">{{ duration(row) }}</td>
+            </ng-container>
+            <ng-container matColumnDef="startedAt">
+              <th mat-header-cell *matHeaderCellDef>Started</th>
+              <td mat-cell *matCellDef="let row">{{ row.startedAt | date: 'short' }}</td>
+            </ng-container>
+            <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+          </table>
+        </div>
+        <mat-paginator
+          [length]="totalCount()"
+          [pageIndex]="pageIndex()"
+          [pageSize]="pageSize()"
+          [pageSizeOptions]="[10, 20, 50]"
+          (page)="onPage($event)"
+        />
+      </mat-card-content>
+    </mat-card>
+  }
+</div>

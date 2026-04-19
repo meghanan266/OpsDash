@@ -5,7 +5,7 @@
 
   <div class="row row-1">
     <div class="col health-col">
-      <app-health-score [healthScore]="healthScore()" />
+      <app-health-score />
     </div>
     <div class="col kpi-col">
       <mat-card class="panel" appearance="outlined">
@@ -35,13 +35,36 @@
   </mat-card>
 
   <div class="row row-3">
-    <mat-card class="panel chart-panel" appearance="outlined">
+    <mat-card class="panel chart-panel chart-panel--metric" appearance="outlined">
       <mat-card-content>
         <h2 class="section-title">{{ chartMetricName() || 'Metric' }} — history</h2>
         <div class="chart-block">
-          <app-metric-chart [metricName]="chartMetricName()" [historyData]="chartHistory()" [anomalies]="chartAnomalies()" />
+          <app-metric-chart
+            [metricName]="chartMetricName()"
+            [historyData]="chartHistory()"
+            [anomalies]="chartAnomalies()"
+          />
         </div>
-        <h3 class="sub-title">Forecast</h3>
+      </mat-card-content>
+    </mat-card>
+    <div class="side-stack">
+      <mat-card class="panel feed-card" appearance="outlined">
+        <mat-card-content>
+          <app-anomaly-feed [anomalies]="anomalies()" />
+        </mat-card-content>
+      </mat-card>
+      <mat-card class="panel incidents-card" appearance="outlined">
+        <mat-card-content>
+          <app-recent-incidents-panel [incidents]="incidents()" />
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </div>
+
+  <div class="row row-4">
+    <mat-card class="panel forecast-panel" appearance="outlined">
+      <mat-card-content>
+        <h2 class="section-title">Forecast — {{ chartMetricName() || 'metric' }}</h2>
         <div class="forecast-toolbar">
           <span class="muted">Method</span>
           <mat-button-toggle-group
@@ -62,44 +85,20 @@
         </div>
       </mat-card-content>
     </mat-card>
-    <div class="side-stack">
-      <mat-card class="panel" appearance="outlined">
-        <mat-card-content>
-          <app-anomaly-feed [anomalies]="anomalies()" (anomalyClick)="onAnomalyClick($event)" />
-        </mat-card-content>
-      </mat-card>
-      <mat-card class="panel incidents-panel" appearance="outlined">
-        <mat-card-content>
-          <h3 class="section-title">Recent incidents</h3>
-          @if (incidents().length === 0) {
-            <p class="muted">No recent incidents</p>
-          } @else {
-            <ul class="incident-list">
-              @for (i of incidents(); track i.id) {
-                <li>
-                  <a routerLink="/incidents">{{ i.title }}</a>
-                  <span class="muted small">{{ i.severity }} · {{ i.status }}</span>
-                </li>
-              }
-            </ul>
-          }
-        </mat-card-content>
-      </mat-card>
-    </div>
   </div>
 
   <div class="metrics-region">
     <app-dashboard-metrics-table
-    [rows]="tableRows()"
-    [totalCount]="tableTotal()"
-    [pageIndex]="tablePageIndex()"
-    [pageSize]="tablePageSize()"
-    [loading]="loading()"
-    [categoryFilter]="filterCategory()"
-    [sortActive]="tableSortActive()"
-    [sortDirection]="tableSortDirection()"
-    (pageChange)="onTablePage($event)"
-    (sortChange)="onTableSort($event)"
+      [rows]="tableRows()"
+      [totalCount]="tableTotal()"
+      [pageIndex]="tablePageIndex()"
+      [pageSize]="tablePageSize()"
+      [loading]="loading()"
+      [categoryFilter]="filterCategory()"
+      [sortActive]="tableSortActive()"
+      [sortDirection]="tableSortDirection()"
+      (pageChange)="onTablePage($event)"
+      (sortChange)="onTableSort($event)"
     />
   </div>
 </div>

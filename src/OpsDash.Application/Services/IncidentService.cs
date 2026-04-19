@@ -1,5 +1,6 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using OpsDash.Application.DTOs.Anomalies;
 using OpsDash.Application.DTOs.Common;
 using OpsDash.Application.DTOs.Incidents;
 using OpsDash.Application.Interfaces;
@@ -11,17 +12,35 @@ public class IncidentService : IIncidentService
 {
     private readonly IAppDbContext _db;
     private readonly IMapper _mapper;
+    private readonly ITenantContextService _tenantContext;
 
-    public IncidentService(IAppDbContext db, IMapper mapper)
+    public IncidentService(IAppDbContext db, IMapper mapper, ITenantContextService tenantContext)
     {
         _db = db;
         _mapper = mapper;
+        _tenantContext = tenantContext;
     }
 
-    public async Task<ApiResponse<PagedResult<IncidentDto>>> GetIncidentsAsync(PagedRequest paging)
+    public async Task<ApiResponse<PagedResult<IncidentDto>>> GetIncidentsAsync(
+        PagedRequest paging,
+        string? status = null,
+        string? severity = null)
     {
         paging ??= new PagedRequest();
         var query = _db.Incidents.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            var st = status.Trim();
+            query = query.Where(i => i.Status == st);
+        }
+
+        if (!string.IsNullOrWhiteSpace(severity))
+        {
+            var sev = severity.Trim();
+            query = query.Where(i => i.Severity == sev);
+        }
+
         query = ApplySorting(query, paging);
 
         var total = await query.CountAsync();
@@ -36,6 +55,26 @@ public class IncidentService : IIncidentService
             TotalCount = total,
             Page = paging.Page,
             PageSize = paging.PageSize,
+        });
+    }
+
+    public async Task<ApiResponse<IncidentStatsDto>> GetStatsAsync()
+    {
+        var now = DateTime.UtcNow;
+        var since = now.AddHours(-24);
+
+        var openCount = await _db.Incidents.CountAsync(i => i.Status == "Open");
+        var investigatingCount = await _db.Incidents.CountAsync(i => i.Status == "Investigating");
+        var resolvedLast24 = await _db.Incidents.CountAsync(i =>
+            i.Status == "Resolved"
+            && i.ResolvedAt != null
+            && i.ResolvedAt >= since);
+
+        return ApiResponse<IncidentStatsDto>.Ok(new IncidentStatsDto
+        {
+            OpenCount = openCount,
+            InvestigatingCount = investigatingCount,
+            ResolvedLast24HoursCount = resolvedLast24,
         });
     }
 
@@ -56,11 +95,32 @@ public class IncidentService : IIncidentService
             .OrderBy(e => e.CreatedAt)
             .Select(e => _mapper.Map<IncidentEventDto>(e))
             .ToList();
+
+        var anomalyIds = await _db.AnomalyScores.AsNoTracking()
+            .Where(a => a.IncidentId == id)
+            .Select(a => a.Id)
+            .ToListAsync();
+
+        if (anomalyIds.Count > 0)
+        {
+            var correlations = await _db.MetricCorrelations.AsNoTracking()
+                .Where(c => anomalyIds.Contains(c.SourceAnomalyId))
+                .OrderBy(c => c.CorrelatedMetricName)
+                .ThenBy(c => c.TimeOffsetSeconds)
+                .ToListAsync();
+            detail.CorrelatedMetrics = _mapper.Map<List<MetricCorrelationDto>>(correlations);
+        }
+        else
+        {
+            detail.CorrelatedMetrics = [];
+        }
+
         return ApiResponse<IncidentDetailDto>.Ok(detail);
     }
 
     public async Task<ApiResponse<IncidentDto>> AcknowledgeAsync(int id, int userId)
     {
+        var tenantId = _tenantContext.TenantId;
         var incident = await _db.Incidents.FirstOrDefaultAsync(i => i.Id == id);
         if (incident is null)
         {
@@ -69,6 +129,21 @@ public class IncidentService : IIncidentService
 
         incident.AcknowledgedBy = userId;
         incident.AcknowledgedAt = DateTime.UtcNow;
+        if (string.Equals(incident.Status, "Open", StringComparison.OrdinalIgnoreCase))
+        {
+            incident.Status = "Acknowledged";
+        }
+
+        _db.IncidentEvents.Add(new IncidentEvent
+        {
+            IncidentId = incident.Id,
+            TenantId = tenantId,
+            EventType = "Acknowledged",
+            Description = "Incident acknowledged",
+            CreatedAt = DateTime.UtcNow,
+            CreatedBy = userId,
+        });
+
         await _db.SaveChangesAsync();
 
         return ApiResponse<IncidentDto>.Ok(_mapper.Map<IncidentDto>(incident));
@@ -81,13 +156,25 @@ public class IncidentService : IIncidentService
             return ApiResponse<IncidentDto>.Fail("Status is required.");
         }
 
+        var tenantId = _tenantContext.TenantId;
         var incident = await _db.Incidents.FirstOrDefaultAsync(i => i.Id == id);
         if (incident is null)
         {
             return ApiResponse<IncidentDto>.Fail("Incident not found.");
         }
 
-        incident.Status = status.Trim();
+        var newStatus = status.Trim();
+        incident.Status = newStatus;
+
+        _db.IncidentEvents.Add(new IncidentEvent
+        {
+            IncidentId = incident.Id,
+            TenantId = tenantId,
+            EventType = "StatusChanged",
+            Description = $"Status changed to {newStatus}",
+            CreatedAt = DateTime.UtcNow,
+        });
+
         await _db.SaveChangesAsync();
 
         return ApiResponse<IncidentDto>.Ok(_mapper.Map<IncidentDto>(incident));

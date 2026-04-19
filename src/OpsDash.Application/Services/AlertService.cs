@@ -145,11 +145,19 @@ public class AlertService : IAlertService
         return ApiResponse<bool>.Ok(true);
     }
 
-    public async Task<ApiResponse<PagedResult<AlertDto>>> GetAlertsAsync(PagedRequest paging)
+    public async Task<ApiResponse<PagedResult<AlertDto>>> GetAlertsAsync(PagedRequest paging, bool? isPredictive = null)
     {
         paging ??= new PagedRequest();
 
         IQueryable<Alert> query = _db.Alerts;
+        if (isPredictive == true)
+        {
+            query = query.Where(a => a.IsPredictive);
+        }
+        else if (isPredictive == false)
+        {
+            query = query.Where(a => !a.IsPredictive);
+        }
 
         var totalCount = await query.CountAsync();
 

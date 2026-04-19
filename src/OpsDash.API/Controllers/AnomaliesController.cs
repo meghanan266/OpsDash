@@ -27,9 +27,11 @@ public class AnomaliesController : ControllerBase
     /// </summary>
     [HttpGet]
     [ProducesResponseType(typeof(ApiResponse<PagedResult<AnomalyDto>>), StatusCodes.Status200OK)]
-    public async Task<ActionResult<ApiResponse<PagedResult<AnomalyDto>>>> GetAnomalies([FromQuery] PagedRequest paging)
+    public async Task<ActionResult<ApiResponse<PagedResult<AnomalyDto>>>> GetAnomalies(
+        [FromQuery] PagedRequest paging,
+        [FromQuery] string? metricName = null)
     {
-        var result = await _anomalyService.GetAnomaliesAsync(paging);
+        var result = await _anomalyService.GetAnomaliesAsync(paging, metricName);
         return Ok(result);
     }
 

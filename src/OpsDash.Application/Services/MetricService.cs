@@ -188,6 +188,7 @@ public class MetricService : IMetricService
         {
             "metricname" => desc ? query.OrderByDescending(m => m.MetricName) : query.OrderBy(m => m.MetricName),
             "category" => desc ? query.OrderByDescending(m => m.Category) : query.OrderBy(m => m.Category),
+            "metricvalue" => desc ? query.OrderByDescending(m => m.MetricValue) : query.OrderBy(m => m.MetricValue),
             "createdat" => desc ? query.OrderByDescending(m => m.CreatedAt) : query.OrderBy(m => m.CreatedAt),
             "recordedat" => desc ? query.OrderByDescending(m => m.RecordedAt) : query.OrderBy(m => m.RecordedAt),
             _ => desc ? query.OrderByDescending(m => m.RecordedAt) : query.OrderBy(m => m.RecordedAt),
